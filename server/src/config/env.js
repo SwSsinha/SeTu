@@ -1,4 +1,3 @@
-// Environment configuration and validation
 const required = [
 	'PORTIA_API_KEY',
 	'PORTIA_TOOL_ID',
