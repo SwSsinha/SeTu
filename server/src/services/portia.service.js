@@ -42,25 +42,42 @@ async function scrapeArticle({ url }) {
     throw err;
   }
   const newPlanRunId = generateRunId();
-  const base = `https://api.portialabs.ai/v0/tools/${cfg.PORTIA_TOOL_ID}/run`;
-  const endpoints = [base, `${base}/`];
+  const baseUrl = cfg.PORTIA_BASE_URL?.replace(/\/$/, '') || 'https://api.portialabs.ai';
+  const toolIdRaw = cfg.PORTIA_TOOL_ID;
+  const toolIdEncoded = encodeURIComponent(toolIdRaw);
+  const versions = ['v0', 'v1'];
+  const withApi = (v, f) => `${baseUrl}/api/${v}${f}`;
+  const noApi = (v, f) => `${baseUrl}/${v}${f}`;
+  const patterns = [
+    (v) => withApi(v, `/tools/${toolIdEncoded}/run`),
+    (v) => withApi(v, `/tools/run/${toolIdEncoded}`),
+    // fallbacks without /api segment
+    (v) => noApi(v, `/tools/${toolIdEncoded}/run`),
+    (v) => noApi(v, `/tools/run/${toolIdEncoded}`),
+  ];
+  const bases = versions.flatMap((v) => patterns.map((p) => p(v)));
+  const endpoints = bases.flatMap((b) => [b, `${b}/`]);
   const body = {
     arguments: { url },
     execution_context: { plan_run_id: newPlanRunId },
   };
 
   let lastErr;
+  const attempted = [];
   for (const endpoint of endpoints) {
     try {
-      const resp = await axios.post(endpoint, body, {
-        headers: {
-          Authorization: `Api-Key ${cfg.PORTIA_API_KEY}`,
-          'X-Api-Key': cfg.PORTIA_API_KEY, // optional alt header some setups use
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        timeout: 60000,
-      });
+      attempted.push(endpoint);
+      const headers = {
+        Authorization: `Api-Key ${cfg.PORTIA_API_KEY}`,
+        'X-Api-Key': cfg.PORTIA_API_KEY, // optional alt header some setups use
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      };
+      if (cfg.PORTIA_ORG_ID) {
+        headers['X_PORTIA_ORG_ID'] = cfg.PORTIA_ORG_ID;
+        headers['X-Portia-Org-Id'] = cfg.PORTIA_ORG_ID; // compatibility variant
+      }
+      const resp = await axios.post(endpoint, body, { headers, timeout: 60000 });
       // If we got here, request succeeded
       const text = extractLongestString(resp.data);
       if (!text || text.trim().length < 50) {
@@ -73,6 +90,14 @@ async function scrapeArticle({ url }) {
       lastErr = err;
       // Retry with next endpoint only for 404/405 variations
       const code = err?.response?.status;
+      const msg = err?.response?.data?.error || err?.message;
+      if (msg && /X_PORTIA_ORG_ID/i.test(msg) && !cfg.PORTIA_ORG_ID) {
+        const hint = new Error('Portia requires X_PORTIA_ORG_ID header. Set PORTIA_ORG_ID in your server .env');
+        hint.status = 400;
+  hint.detail = { serverMessage: msg };
+        hint.attempted = attempted;
+        throw hint;
+      }
       if (!(code === 404 || code === 405)) break;
     }
   }
@@ -81,12 +106,22 @@ async function scrapeArticle({ url }) {
   const status = lastErr?.response?.status || 500;
   const detail = lastErr?.response?.data || lastErr?.message || 'Unknown error';
   const err = new Error(
-    `Portia request failed (status ${status}). Check PORTIA_TOOL_ID and endpoint availability.`
+    `Portia request failed (status ${status}). Check PORTIA_TOOL_ID, API key, and base URL (${baseUrl}).`
   );
   err.status = status;
-  err.detail = detail;
+  err.detail = {
+    server: detail,
+    toolIdRaw,
+    toolIdEncoded,
+    headersSent: {
+      authorization: Boolean(cfg.PORTIA_API_KEY),
+      xApiKey: Boolean(cfg.PORTIA_API_KEY),
+      xPortiaOrgId: Boolean(cfg.PORTIA_ORG_ID),
+    },
+  };
+  err.attempted = attempted;
   throw err;
-  
+
 }
 
 module.exports = { scrapeArticle };

@@ -7,6 +7,8 @@ module.exports = (err, req, res, next) => {
 	};
 	if (process.env.NODE_ENV !== 'production') {
 		payload.stack = err.stack;
+		if (err.detail) payload.detail = err.detail;
+		if (err.attempted) payload.attempted = err.attempted;
 	}
 	// Basic logging
 	console.error('Error handler:', payload);
