@@ -42,29 +42,51 @@ async function scrapeArticle({ url }) {
     throw err;
   }
   const newPlanRunId = generateRunId();
-  const endpoint = `https://api.portialabs.ai/v0/tools/${cfg.PORTIA_TOOL_ID}/run/`;
+  const base = `https://api.portialabs.ai/v0/tools/${cfg.PORTIA_TOOL_ID}/run`;
+  const endpoints = [base, `${base}/`];
   const body = {
     arguments: { url },
     execution_context: { plan_run_id: newPlanRunId },
   };
 
-  const resp = await axios.post(endpoint, body, {
-    headers: {
-      Authorization: `Api-Key ${cfg.PORTIA_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    timeout: 60000,
-  });
-
-  // If you know the exact path from Postman, prefer that (e.g., resp.data.output.markdown)
-  const text = extractLongestString(resp.data);
-  if (!text || text.trim().length < 50) {
-    const err = new Error('Could not extract article text from the URL');
-    err.status = 422;
-    throw err;
+  let lastErr;
+  for (const endpoint of endpoints) {
+    try {
+      const resp = await axios.post(endpoint, body, {
+        headers: {
+          Authorization: `Api-Key ${cfg.PORTIA_API_KEY}`,
+          'X-Api-Key': cfg.PORTIA_API_KEY, // optional alt header some setups use
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        timeout: 60000,
+      });
+      // If we got here, request succeeded
+      const text = extractLongestString(resp.data);
+      if (!text || text.trim().length < 50) {
+        const err = new Error('Could not extract article text from the URL');
+        err.status = 422;
+        throw err;
+      }
+      return text.trim();
+    } catch (err) {
+      lastErr = err;
+      // Retry with next endpoint only for 404/405 variations
+      const code = err?.response?.status;
+      if (!(code === 404 || code === 405)) break;
+    }
   }
 
-  return text.trim();
+  // If we reach here, all attempts failed
+  const status = lastErr?.response?.status || 500;
+  const detail = lastErr?.response?.data || lastErr?.message || 'Unknown error';
+  const err = new Error(
+    `Portia request failed (status ${status}). Check PORTIA_TOOL_ID and endpoint availability.`
+  );
+  err.status = status;
+  err.detail = detail;
+  throw err;
+  
 }
 
 module.exports = { scrapeArticle };
