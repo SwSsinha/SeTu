@@ -2,6 +2,20 @@ const axios = require('axios');
 const { getEnv } = require('../config/env');
 const { generateRunId } = require('../utils/id');
 
+// Simple delay helper for retry backoff
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Decide whether an error is transient and worth retrying
+function isTransient(err) {
+  const status = err?.response?.status;
+  const code = err?.code;
+  if ([408, 429, 500, 502, 503, 504].includes(status)) return true;
+  if (['ECONNABORTED', 'ETIMEDOUT', 'ECONNRESET', 'EAI_AGAIN', 'ENOTFOUND', 'EPIPE'].includes(code)) return true;
+  return false;
+}
+
 /**
  * Extract the longest string found anywhere in a JSON payload.
  * Fallback when the exact content path is unknown.
@@ -65,40 +79,54 @@ async function scrapeArticle({ url }) {
   let lastErr;
   const attempted = [];
   for (const endpoint of endpoints) {
-    try {
-      attempted.push(endpoint);
-      const headers = {
-        Authorization: `Api-Key ${cfg.PORTIA_API_KEY}`,
-        'X-Api-Key': cfg.PORTIA_API_KEY, // optional alt header some setups use
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      };
-      if (cfg.PORTIA_ORG_ID) {
-        headers['X_PORTIA_ORG_ID'] = cfg.PORTIA_ORG_ID;
-        headers['X-Portia-Org-Id'] = cfg.PORTIA_ORG_ID; // compatibility variant
+    attempted.push(endpoint);
+    const headers = {
+      Authorization: `Api-Key ${cfg.PORTIA_API_KEY}`,
+      'X-Api-Key': cfg.PORTIA_API_KEY, // optional alt header some setups use
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    };
+    if (cfg.PORTIA_ORG_ID) {
+      headers['X_PORTIA_ORG_ID'] = cfg.PORTIA_ORG_ID;
+      headers['X-Portia-Org-Id'] = cfg.PORTIA_ORG_ID; // compatibility variant
+    }
+
+    const maxRetries = 3;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const resp = await axios.post(endpoint, body, { headers, timeout: 60000 });
+        // If we got here, request succeeded
+        const text = extractLongestString(resp.data);
+        if (!text || text.trim().length < 50) {
+          const err = new Error('Could not extract article text from the URL');
+          err.status = 422;
+          throw err;
+        }
+        return text.trim();
+      } catch (err) {
+        lastErr = err;
+        const code = err?.response?.status;
+        const msg = err?.response?.data?.error || err?.message;
+        if (msg && /X_PORTIA_ORG_ID/i.test(msg) && !cfg.PORTIA_ORG_ID) {
+          const hint = new Error('Portia requires X_PORTIA_ORG_ID header. Set PORTIA_ORG_ID in your server .env');
+          hint.status = 400;
+          hint.detail = { serverMessage: msg };
+          hint.attempted = attempted;
+          throw hint;
+        }
+        // For 404/405, move to next endpoint variant immediately
+        if (code === 404 || code === 405) {
+          break;
+        }
+        // For transient/network errors, retry this endpoint with backoff
+        if (isTransient(err) && attempt < maxRetries) {
+          const backoff = 400 * attempt + Math.floor(Math.random() * 200);
+          await delay(backoff);
+          continue;
+        }
+        // Non-retryable or retries exhausted: try next endpoint
+        break;
       }
-      const resp = await axios.post(endpoint, body, { headers, timeout: 60000 });
-      // If we got here, request succeeded
-      const text = extractLongestString(resp.data);
-      if (!text || text.trim().length < 50) {
-        const err = new Error('Could not extract article text from the URL');
-        err.status = 422;
-        throw err;
-      }
-      return text.trim();
-    } catch (err) {
-      lastErr = err;
-      // Retry with next endpoint only for 404/405 variations
-      const code = err?.response?.status;
-      const msg = err?.response?.data?.error || err?.message;
-      if (msg && /X_PORTIA_ORG_ID/i.test(msg) && !cfg.PORTIA_ORG_ID) {
-        const hint = new Error('Portia requires X_PORTIA_ORG_ID header. Set PORTIA_ORG_ID in your server .env');
-        hint.status = 400;
-  hint.detail = { serverMessage: msg };
-        hint.attempted = attempted;
-        throw hint;
-      }
-      if (!(code === 404 || code === 405)) break;
     }
   }
 
