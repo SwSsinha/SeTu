@@ -1,0 +1,12 @@
+### Health
+GET http://localhost:5000/
+
+### Process (download audio)
+POST http://localhost:5000/api/process
+Content-Type: application/json
+
+{
+	"url": "https://www.gutenberg.org/files/98/98-h/98-h.htm",
+	"lang": "hi"
+}
+
