@@ -1,5 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base reset + dark background */
 html,body,#root { height:100%; margin:0; font-family:system-ui, sans-serif; background:#0e1116; color:#f5f7fa; }
 * { box-sizing:border-box; }
 a { color:#5fb3ff; text-decoration:none; }
 a:hover { text-decoration:underline; }
 button { font:inherit; cursor:pointer; }
+
+/* Custom scrollbar (optional) */
+::-webkit-scrollbar { width:10px; }
+::-webkit-scrollbar-track { background:#11151c; }
+::-webkit-scrollbar-thumb { background:#2a313d; border-radius:5px; }
+::-webkit-scrollbar-thumb:hover { background:#394351; }
