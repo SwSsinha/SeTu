@@ -8,6 +8,7 @@ const { summarize } = require('../utils/summary');
 const { getCached, setCached } = require('../utils/cache');
 const { pushRun } = require('../utils/history');
 const { Readable } = require('stream');
+const { recordRun } = require('../utils/metricsLite');
 
 // Simple middleware for validating batch input
 function validateMulti(req, res, next) {
@@ -65,7 +66,8 @@ router.post('/', validateMulti, asyncHandler(async (req, res) => {
     const { hit, entry } = getCached({ url, lang, voice });
     if (hit) {
       const m = entry.meta?.metrics || {};
-      pushRun({ runId, resultId: entry.id, url, lang, voice, cacheHit: true, partial: entry.meta.partial || false, retries: { portia: m.portiaRetries || 0, translation: m.translationRetries || 0, tts: m.ttsRetries || 0 }, summaryLen: (entry.meta.summary || '').length, durationMs: 0 });
+  pushRun({ runId, resultId: entry.id, url, lang, voice, cacheHit: true, partial: entry.meta.partial || false, retries: { portia: m.portiaRetries || 0, translation: m.translationRetries || 0, tts: m.ttsRetries || 0 }, summaryLen: (entry.meta.summary || '').length, durationMs: 0 });
+  recordRun({ cacheHit: true, partial: entry.meta.partial || false, audioBytes: entry.audioBuffer.length, phases: [] });
       return {
         lang,
         cacheHit: true,
@@ -90,7 +92,8 @@ router.post('/', validateMulti, asyncHandler(async (req, res) => {
     }
     const audioBuffer = await streamToBuffer(audioStream);
     const { id } = setCached({ url, lang, voice }, { audioBuffer, meta: { url, lang, voice, textChars: ttsText.length, summary: summaryText, partial: translationResult.partial, metrics: { ...metrics, portiaRetries: scrapeMetrics.portiaRetries || 0 } } });
-    pushRun({ runId, resultId: id, url, lang, voice, cacheHit: false, partial: translationResult.partial || false, retries: { portia: scrapeMetrics.portiaRetries || 0, translation: metrics.translationRetries || 0, tts: metrics.ttsRetries || 0 }, summaryLen: summaryText.length, durationMs: 0 });
+  pushRun({ runId, resultId: id, url, lang, voice, cacheHit: false, partial: translationResult.partial || false, retries: { portia: scrapeMetrics.portiaRetries || 0, translation: metrics.translationRetries || 0, tts: metrics.ttsRetries || 0 }, summaryLen: summaryText.length, durationMs: 0 });
+  recordRun({ cacheHit: false, partial: translationResult.partial || false, audioBytes: audioBuffer.length, phases: [] });
     return {
       lang,
       cacheHit: false,

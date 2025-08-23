@@ -10,6 +10,7 @@ const { Readable } = require('stream');
 const { getCached, setCached } = require('../utils/cache');
 const { summarize } = require('../utils/summary');
 const { pushRun } = require('../utils/history');
+const { recordRun } = require('../utils/metricsLite');
 
 const router = Router();
 
@@ -77,6 +78,7 @@ router.post(
 			summaryLen: summaryText.length,
 			durationMs: Date.now() - startTs,
 		});
+		recordRun({ cacheHit: false, partial: translationResult.partial || false, audioBytes: buf.length, phases: [] });
 		res.setHeader('X-Cache-Hit', '0');
 		if (id) res.setHeader('X-Result-Id', id);
 		res.setHeader('X-Run-Id', runId);
@@ -133,6 +135,7 @@ router.post(
 				summaryLen: (entry.meta.summary || '').length,
 				durationMs: 0,
 			});
+			recordRun({ cacheHit: true, partial: entry.meta.partial || false, audioBytes: entry.audioBuffer.length, phases: [] });
 			return res.json({
 				...summary,
 				status: 'success',
@@ -239,6 +242,7 @@ router.post(
 			summaryLen: summaryText.length,
 			durationMs: Date.now() - startTs,
 		});
+		recordRun({ cacheHit: false, partial: translationResult.partial || false, audioBytes: audioBuffer.length, phases: tracker.summary().phases });
 
 		const summary = tracker.summary();
 		res.json({
