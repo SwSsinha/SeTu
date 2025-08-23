@@ -27,6 +27,13 @@ export default function SingleProcessForm() {
   const customLangValid = !isCustomLang || (/^[a-z-]{2,5}$/.test(customLangTrimmed) && customLangTrimmed.length>0);
   const canSubmit = !disabled && urlTrimmed.length > 0 && customLangValid;
 
+  function isValidHttpUrl(str) {
+    try { const u = new URL(str); return u.protocol === 'http:' || u.protocol === 'https:'; } catch { return false; }
+  }
+  const urlValid = urlTrimmed.length === 0 ? true : isValidHttpUrl(urlTrimmed);
+  const showUrlError = urlTrimmed.length > 0 && !urlValid;
+  const showLangError = activeSelectValue === 'custom' && customLang.length > 0 && !customLangValid;
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (disabled) return;
@@ -124,7 +131,18 @@ export default function SingleProcessForm() {
           <legend className="sr-only">Processing inputs</legend>
           <div className="space-y-2">
             <Label htmlFor="url">Source URL</Label>
-            <Input id="url" placeholder="https://example.com/article" aria-required="true" value={url} onChange={(e) => setUrl(e.target.value)} />
+            <Input
+              id="url"
+              placeholder="https://example.com/article"
+              aria-required="true"
+              aria-invalid={showUrlError}
+              className={showUrlError ? 'border-destructive focus:ring-destructive' : undefined}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+            {showUrlError && (
+              <p className="text-[11px] mt-1 text-destructive" role="alert">Enter a valid http(s) URL.</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="language">Language</Label>
@@ -161,7 +179,7 @@ export default function SingleProcessForm() {
                 <p className="text-[11px] text-muted-foreground" id="custom-lang-help">
                   2–5 lowercase letters (optionally hyphen). Examples: fr, de, pt-br
                 </p>
-                {!customLangValid && (
+                {showLangError && (
                   <p className="text-[11px] text-destructive" role="alert">Invalid code format.</p>
                 )}
               </div>
@@ -182,7 +200,7 @@ export default function SingleProcessForm() {
             </select>
           </div>
           <div>
-            <Button type="submit" disabled={!canSubmit} aria-disabled={!canSubmit}>
+            <Button type="submit" disabled={!canSubmit || showUrlError || showLangError} aria-disabled={!canSubmit || showUrlError || showLangError}>
               {status === 'loading' && (
                 <>
                   <Spinner className="mr-2" size={16} />
