@@ -8,6 +8,7 @@ const { generateRunId } = require('../utils/id');
 const { createPhaseTracker } = require('../utils/phaseTracker');
 const { Readable } = require('stream');
 const { getCached, setCached } = require('../utils/cache');
+const { summarize } = require('../utils/summary');
 
 const router = Router();
 
@@ -28,6 +29,7 @@ router.post(
 		}
 
 		const articleText = await scrapeArticle({ url });
+		const summaryText = summarize(articleText);
 		const translated = await translateText({ text: articleText, targetLang: lang });
 		const audioStream = await synthesizeToMp3Stream({ text: translated, voiceId: voice });
 
@@ -37,11 +39,15 @@ router.post(
 			{ url, lang, voice },
 			{
 				audioBuffer: buf,
-				meta: { url, lang, voice, textChars: translated.length },
+				meta: { url, lang, voice, textChars: translated.length, summary: summaryText },
 			}
 		);
 		res.setHeader('X-Cache-Hit', '0');
 		if (id) res.setHeader('X-Result-Id', id);
+		if (summaryText) {
+			const preview = encodeURIComponent(summaryText.slice(0, 120));
+			res.setHeader('X-Summary-Preview', preview);
+		}
 		res.setHeader('Content-Type', 'audio/mpeg');
 		res.setHeader('Content-Disposition', `attachment; filename="setu_${lang}.mp3"`);
 		return Readable.from(buf).pipe(res);
@@ -102,6 +108,16 @@ router.post(
 			return res.status(e.status || 500).json({ ...tracker.summary(), status: 'error' });
 		}
 
+		// Summary phase (after scrape, before translation)
+		let summaryPhase = tracker.start('summary');
+		let summaryText = '';
+		try {
+			summaryText = summarize(articleText);
+			tracker.succeed(summaryPhase, { length: summaryText.length });
+		} catch (e) {
+			tracker.fail(summaryPhase, e);
+		}
+
 		let translatePhase = tracker.start('translate');
 		let translated;
 		try {
@@ -134,12 +150,12 @@ router.post(
 			{ url, lang, voice },
 			{
 				audioBuffer,
-				meta: { url, lang, voice, textChars: translated.length },
+				meta: { url, lang, voice, textChars: translated.length, summary: summaryText },
 			}
 		);
 
 		const summary = tracker.summary();
-			res.json({
+		res.json({
 			...summary,
 			status: 'success',
 			cacheHit: false,
@@ -147,6 +163,7 @@ router.post(
 			url,
 			lang,
 			voice: voice || null,
+			summary: summaryText,
 			audio: {
 				mime: 'audio/mpeg',
 				base64: audioBuffer.toString('base64'),
