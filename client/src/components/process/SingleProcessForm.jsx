@@ -12,8 +12,8 @@ import { useEffect, useState } from 'react';
 // Static single process form (Step 1.3) – only structure, no logic yet.
 export default function SingleProcessForm() {
   const {
-  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, voices, voicesLoading, voice, error,
-  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setVoices, setVoicesLoading, setVoice, setError, reset,
+  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, voices, voicesLoading, voice, inFlightKey, error,
+  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setVoices, setVoicesLoading, setVoice, setInFlightKey, setError, reset,
   } = useSingleProcessState();
 
   const disabled = status === 'loading';
@@ -42,6 +42,12 @@ export default function SingleProcessForm() {
       setStatus('error');
       return;
     }
+    const effectiveLang = isCustomLang ? customLangTrimmed : lang;
+    const key = `${urlTrimmed}|${effectiveLang}|${voice}`;
+    if (inFlightKey && inFlightKey === key) {
+      return; // duplicate in-flight
+    }
+    setInFlightKey(key);
     setError(null);
     setAudioSrc(null);
   setStatus('loading');
@@ -67,6 +73,8 @@ export default function SingleProcessForm() {
     } catch (err) {
       setError(err.message || 'Failed');
       setStatus('error');
+    } finally {
+      setInFlightKey(null);
     }
   }
 
@@ -212,7 +220,7 @@ export default function SingleProcessForm() {
             </select>
           </div>
           <div>
-            <Button type="submit" disabled={!canSubmit || showUrlError || showLangError} aria-disabled={!canSubmit || showUrlError || showLangError}>
+            <Button type="submit" disabled={!canSubmit || showUrlError || showLangError || (inFlightKey !== null && status==='loading')} aria-disabled={!canSubmit || showUrlError || showLangError || (inFlightKey !== null && status==='loading')}>
               {status === 'loading' && (
                 <>
                   <Spinner className="mr-2" size={16} />
