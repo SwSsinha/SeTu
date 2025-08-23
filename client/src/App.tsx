@@ -92,7 +92,7 @@ export default function App() {
         <h1 className="text-2xl font-semibold tracking-tight">SeTu</h1>
         <div className="text-xs text-slate-500">Module 1 · Static UI Shell</div>
       </header>
-      <section className="w-full flex flex-col items-center gap-8">
+  <section className="w-full flex flex-col items-center gap-8">
         {status !== 'success' && (
           <Card>
             <form className="space-y-5">
@@ -235,6 +235,75 @@ export default function App() {
             </div>
           </Card>
         )}
+        {/* Step 5.3: History List Section */}
+        <div className="w-full max-w-5xl space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold tracking-wide uppercase text-slate-400">History</h3>
+            {history.length > 0 && (
+              <div className="text-[10px] text-slate-500">{history.length} item{history.length === 1 ? '' : 's'}</div>
+            )}
+          </div>
+          {history.length === 0 && (
+            <div className="text-xs text-slate-500 border border-dashed border-slate-700 rounded p-4 text-center">No history yet. Process something to see it here.</div>
+          )}
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {history.map((item) => {
+              let derivedTitle = 'Article'
+              try {
+                const u = new URL(item.url)
+                const last = u.pathname.split('/').filter(Boolean).pop()
+                derivedTitle = last ? decodeURIComponent(last).replace(/[-_]/g, ' ') : u.hostname
+              } catch {}
+              const title = (item as any).title || derivedTitle
+              const disabled = !item.audioUrl
+              return (
+                <Card key={item.id} className="p-4 flex flex-col gap-2 bg-slate-900/50">
+                  <div className="space-y-1 min-h-[48px]">
+                    <div className="text-sm font-medium line-clamp-2 break-words">{title}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-slate-500 flex gap-2">
+                      <span>{item.targetLang}</span>
+                      <span>•</span>
+                      <span>{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={disabled}
+                      className="flex-1 h-8 text-xs"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        if (!item.audioUrl) return
+                        const audio = new Audio(item.audioUrl)
+                        audio.play().catch(() => {})
+                      }}
+                    >
+                      Listen
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={disabled}
+                      className="flex-1 h-8 text-xs"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        if (!item.audioUrl) return
+                        const a = document.createElement('a')
+                        a.href = item.audioUrl
+                        a.download = 'setu-audio.mp3'
+                        document.body.appendChild(a)
+                        a.click()
+                        document.body.removeChild(a)
+                      }}
+                    >
+                      Download
+                    </Button>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        </div>
       </section>
       <footer className="mt-auto pb-4 text-xs text-slate-600">Backend ready • Frontend shell in progress</footer>
     </main>
