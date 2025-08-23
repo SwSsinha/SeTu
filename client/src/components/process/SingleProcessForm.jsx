@@ -7,12 +7,13 @@ import { apiClient } from '../../lib/apiClient';
 import { Spinner } from '../shared/Spinner';
 import { Alert } from '../ui/alert';
 import { Badge } from '../ui/badge';
+import { useEffect } from 'react';
 
 // Static single process form (Step 1.3) – only structure, no logic yet.
 export default function SingleProcessForm() {
   const {
-  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, error,
-  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setError, reset,
+  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, voices, voicesLoading, voice, error,
+  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setVoices, setVoicesLoading, setVoice, setError, reset,
   } = useSingleProcessState();
 
   const disabled = status === 'loading';
@@ -53,6 +54,20 @@ export default function SingleProcessForm() {
       setStatus('error');
     }
   }
+
+  // Fetch voices on mount (Step 6.1)
+  useEffect(() => {
+    let cancelled = false;
+    setVoicesLoading(true);
+    apiClient.fetchVoices().then(list => {
+      if (cancelled) return;
+      setVoices(list);
+      if (!voice && list.length > 0) setVoice(list[0]);
+    }).catch(err => {
+      if (!cancelled) console.warn('voices fetch failed', err);
+    }).finally(() => { if (!cancelled) setVoicesLoading(false); });
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Card className="p-6 space-y-4" role="region" aria-labelledby="single-process-heading">

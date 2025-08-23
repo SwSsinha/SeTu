@@ -78,3 +78,11 @@ async function postProcessTimeline({ url, lang }) {
 
 apiClient.postProcessTimeline = postProcessTimeline;
 
+// Fetch available voices
+apiClient.fetchVoices = async function fetchVoices() {
+	const res = await fetch(`${base}/voices`);
+	if (!res.ok) throw new Error(`Failed voices (${res.status})`);
+	const json = await res.json().catch(()=>({}));
+	return Array.isArray(json.voices) ? json.voices : [];
+};
+
