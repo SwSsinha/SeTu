@@ -3,7 +3,8 @@ const asyncHandler = require('../middleware/asyncHandler');
 const validateProcess = require('../middleware/validateProcess');
 const { scrapeArticle } = require('../services/portia.service');
 const { translateText } = require('../services/translate.service');
-const { synthesizeToMp3Stream } = require('../services/tts.service');
+const { synthesizeToMp3Stream } = require('../services/tts.service'); // kept for existing direct use in timeline phases
+const { generateTts } = require('../services/ttsOrchestrator.service');
 const { generateRunId } = require('../utils/id');
 const { createPhaseTracker } = require('../utils/phaseTracker');
 const { Readable } = require('stream');
@@ -11,7 +12,6 @@ const { getCached, setCached } = require('../utils/cache');
 const { summarize } = require('../utils/summary');
 const { pushRun } = require('../utils/history');
 const { recordRun } = require('../utils/metricsLite');
-
 const router = Router();
 
 router.post(
@@ -47,14 +47,15 @@ router.post(
 			// fallback: small slice of original article if translation empty
 			ttsText = articleText.slice(0, 400);
 		}
-		let audioStream;
+		let audioStream; let ttsProvider = 'elevenlabs';
 		try {
-			audioStream = await synthesizeToMp3Stream({ text: ttsText, voiceId: voice, metrics });
+			const { stream, provider } = await generateTts({ text: ttsText, voiceId: voice, metrics });
+			audioStream = stream; ttsProvider = provider;
 		} catch (e) {
-			if (!translationResult.partial) throw e; // full failure if translation wasn't partial
-			// If TTS fails after partial translation, fall back to smaller chunk
+			if (!translationResult.partial) throw e;
 			const fallback = ttsText.slice(0, 800);
-			audioStream = await synthesizeToMp3Stream({ text: fallback, voiceId: voice, metrics });
+			const { stream, provider } = await generateTts({ text: fallback, voiceId: voice, metrics });
+			audioStream = stream; ttsProvider = provider;
 		}
 
 		// Buffer audio to cache & send
@@ -63,7 +64,7 @@ router.post(
 			{ url, lang, voice },
 			{
 				audioBuffer: buf,
-				meta: { url, lang, voice, textChars: ttsText.length, summary: summaryText, partial: translationResult.partial, metrics },
+				meta: { url, lang, voice, textChars: ttsText.length, summary: summaryText, partial: translationResult.partial, ttsProvider, metrics },
 			}
 		);
 		pushRun({
@@ -201,13 +202,15 @@ router.post(
 			if (!ttsText || ttsText.trim().length < 5) {
 				ttsText = articleText.slice(0, 400);
 			}
-			let audioStream;
+			let audioStream; let ttsProvider = 'elevenlabs';
 			try {
-				audioStream = await synthesizeToMp3Stream({ text: ttsText, voiceId: voice, metrics });
+				const gen = await generateTts({ text: ttsText, voiceId: voice, metrics });
+				audioStream = gen.stream; ttsProvider = gen.provider;
 			} catch (e) {
 				if (!translationResult.partial) throw e;
 				const fallback = ttsText.slice(0, 800);
-				audioStream = await synthesizeToMp3Stream({ text: fallback, voiceId: voice, metrics });
+				const gen2 = await generateTts({ text: fallback, voiceId: voice, metrics });
+				audioStream = gen2.stream; ttsProvider = gen2.provider;
 			}
 			if (!(audioStream instanceof Readable)) {
 				const r = new Readable();
@@ -227,7 +230,7 @@ router.post(
 			{ url, lang, voice },
 			{
 				audioBuffer,
-				meta: { url, lang, voice, textChars: translated.length, summary: summaryText, partial: translationResult.partial, metrics },
+				meta: { url, lang, voice, textChars: translated.length, summary: summaryText, partial: translationResult.partial, ttsProvider, metrics },
 			}
 		);
 		pushRun({
@@ -255,6 +258,7 @@ router.post(
 			voice: voice || null,
 			summary: summaryText,
 			partial: translationResult.partial || false,
+			ttsProvider,
 			retries: {
 				portia: metrics.portiaRetries || 0,
 				translation: metrics.translationRetries || 0,
