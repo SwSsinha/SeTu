@@ -7,7 +7,7 @@ import { apiClient } from '../../lib/apiClient';
 import { Spinner } from '../shared/Spinner';
 import { Alert } from '../ui/alert';
 import { Badge } from '../ui/badge';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 // Static single process form (Step 1.3) – only structure, no logic yet.
 export default function SingleProcessForm() {
@@ -18,7 +18,14 @@ export default function SingleProcessForm() {
 
   const disabled = status === 'loading';
   const urlTrimmed = url.trim();
-  const canSubmit = !disabled && urlTrimmed.length > 0;
+
+  const presetLangs = ['hi','en','es'];
+  const isCustomLang = lang && !presetLangs.includes(lang);
+  const [customLang, setCustomLang] = useState(isCustomLang ? lang : '');
+  const activeSelectValue = isCustomLang ? 'custom' : (lang || 'en');
+  const customLangTrimmed = customLang.trim();
+  const customLangValid = !isCustomLang || (/^[a-z-]{2,5}$/.test(customLangTrimmed) && customLangTrimmed.length>0);
+  const canSubmit = !disabled && urlTrimmed.length > 0 && customLangValid;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -33,7 +40,8 @@ export default function SingleProcessForm() {
   setStatus('loading');
     try {
       // Timeline endpoint – includes phases, summary, totalMs (Step 4.6 adds totalMs usage)
-  const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, runId: rrun, partial: part, cacheHit: cHit, totalMs: tot, retries: rtries, headers: hdrs, translationChars: tChars, summaryChars: sChars, json } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang, voice });
+  const effectiveLang = isCustomLang ? customLangTrimmed : lang;
+  const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, runId: rrun, partial: part, cacheHit: cHit, totalMs: tot, retries: rtries, headers: hdrs, translationChars: tChars, summaryChars: sChars, json } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang: effectiveLang, voice });
   if (objectUrl) setAudioSrc(objectUrl);
   if (blob) setAudioBlob(blob);
   setPhases(ph);
@@ -103,15 +111,41 @@ export default function SingleProcessForm() {
             <select
               id="language"
               className="w-full border border-border bg-background rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-              value={lang}
-              onChange={(e) => setLang(e.target.value)}
+              value={activeSelectValue}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === 'custom') {
+                  setLang(customLangTrimmed || '');
+                } else {
+                  setLang(v);
+                  setCustomLang('');
+                }
+              }}
               aria-label="Target language"
             >
-              <option value="en">English</option>
-              <option value="hi">Hindi (hi)</option>
-              <option value="bn">Bengali (bn)</option>
-              <option value="es">Spanish (es)</option>
+              {presetLangs.map(code => (
+                <option key={code} value={code}>{code}</option>
+              ))}
+              <option value="custom">Custom…</option>
             </select>
+            {activeSelectValue === 'custom' && (
+              <div className="pt-1 space-y-1">
+                <Input
+                  id="custom-lang"
+                  placeholder="e.g. fr"
+                  aria-label="Custom language code"
+                  value={customLang}
+                  onChange={(e) => { setCustomLang(e.target.value); setLang(e.target.value.trim()); }}
+                  aria-invalid={!customLangValid}
+                />
+                <p className="text-[11px] text-muted-foreground" id="custom-lang-help">
+                  2–5 lowercase letters (optionally hyphen). Examples: fr, de, pt-br
+                </p>
+                {!customLangValid && (
+                  <p className="text-[11px] text-destructive" role="alert">Invalid code format.</p>
+                )}
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="voice">Voice</Label>
