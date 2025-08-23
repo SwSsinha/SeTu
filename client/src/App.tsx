@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 
 type Status = 'idle' | 'loading' | 'success' | 'error'
 
@@ -55,6 +56,7 @@ export default function App() {
                 placeholder="https://example.com/article"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
+                disabled={status === 'loading'}
               />
             </div>
             <div className="space-y-2">
@@ -64,13 +66,25 @@ export default function App() {
                 placeholder="e.g. en, es, fr"
                 value={lang}
                 onChange={(e) => setLang(e.target.value)}
+                disabled={status === 'loading'}
               />
             </div>
             <div className="pt-2">
-              <Button className="w-full" onClick={handleSubmit}>
+              <Button className="w-full flex items-center justify-center gap-2" onClick={handleSubmit} disabled={status === 'loading' || !url.trim()}>
+                {status === 'loading' && (
+                  <span className="inline-block h-4 w-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                )}
                 {status === 'loading' ? 'Processing…' : 'Process'}
               </Button>
             </div>
+            {status === 'loading' && (
+              <Alert className="mt-4">
+                <div className="flex flex-col">
+                  <AlertTitle>Processing</AlertTitle>
+                  <AlertDescription>Scraping, translating & generating audio…</AlertDescription>
+                </div>
+              </Alert>
+            )}
           </form>
         </Card>
       </section>
