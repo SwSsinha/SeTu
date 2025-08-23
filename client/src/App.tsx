@@ -47,8 +47,9 @@ export default function App() {
         <div className="text-xs text-slate-500">Module 1 · Static UI Shell</div>
       </header>
       <section className="w-full flex flex-col items-center gap-8">
-        <Card>
-          <form className="space-y-5">
+        {status !== 'success' && (
+          <Card>
+            <form className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="url">Article URL</Label>
               <Input
@@ -85,8 +86,57 @@ export default function App() {
                 </div>
               </Alert>
             )}
-          </form>
-        </Card>
+            </form>
+          </Card>
+        )}
+        {status === 'success' && (
+          <Card className="space-y-4 w-full max-w-xl">
+            <div className="space-y-1">
+              <h2 className="text-lg font-semibold">Success</h2>
+              <p className="text-xs text-slate-400">Your article was processed. Preview the audio below.</p>
+            </div>
+            <div>
+              {audioSrc ? (
+                <audio controls src={audioSrc} className="w-full" />
+              ) : (
+                <div className="text-xs text-slate-500 border border-dashed border-slate-700 rounded p-3 text-center">
+                  Audio not yet attached (will be wired in a later step).
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                disabled={!audioSrc}
+                onClick={(e) => {
+                  e.preventDefault()
+                  if (!audioSrc) return
+                  const a = document.createElement('a')
+                  a.href = audioSrc
+                  a.download = 'setu-audio.mp3'
+                  document.body.appendChild(a)
+                  a.click()
+                  document.body.removeChild(a)
+                }}
+              >
+                Download
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setStatus('idle')
+                  setUrl('')
+                  setAudioSrc(null)
+                  setError(null)
+                }}
+              >
+                Translate Another
+              </Button>
+            </div>
+          </Card>
+        )}
       </section>
       <footer className="mt-auto pb-4 text-xs text-slate-600">Backend ready • Frontend shell in progress</footer>
     </main>
