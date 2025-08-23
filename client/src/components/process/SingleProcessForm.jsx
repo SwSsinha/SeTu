@@ -11,8 +11,8 @@ import { Badge } from '../ui/badge';
 // Static single process form (Step 1.3) – only structure, no logic yet.
 export default function SingleProcessForm() {
   const {
-  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, error,
-  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setError, reset,
+  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, error,
+  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setError, reset,
   } = useSingleProcessState();
 
   const disabled = status === 'loading';
@@ -32,7 +32,7 @@ export default function SingleProcessForm() {
   setStatus('loading');
     try {
       // Timeline endpoint – includes phases, summary, totalMs (Step 4.6 adds totalMs usage)
-  const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, runId: rrun, partial: part, cacheHit: cHit, totalMs: tot, retries: rtries, headers: hdrs, json } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang });
+  const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, runId: rrun, partial: part, cacheHit: cHit, totalMs: tot, retries: rtries, headers: hdrs, translationChars: tChars, summaryChars: sChars, json } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang });
   if (objectUrl) setAudioSrc(objectUrl);
   if (blob) setAudioBlob(blob);
   setPhases(ph);
@@ -45,6 +45,8 @@ export default function SingleProcessForm() {
   if (typeof cHit === 'boolean') setCacheHit(cHit);
   if (rtries) setRetries(rtries);
   if (hdrs) setHeaders(hdrs);
+  if (typeof tChars === 'number') setTranslationChars(tChars);
+  if (typeof sChars === 'number') setSummaryChars(sChars);
       setStatus('done');
     } catch (err) {
       setError(err.message || 'Failed');
@@ -135,6 +137,7 @@ export default function SingleProcessForm() {
             <span title="TTS retries" className={retries.tts ? 'text-amber-600 dark:text-amber-400 font-medium' : ''}>TTS <span className="font-mono">{retries.tts}</span></span>
           </div>
           <p className="text-[11px] text-muted-foreground tabular-nums" aria-label="Total processing time">time: <span className="font-mono">{totalMs}ms</span> (<span className="font-mono">{(totalMs/1000).toFixed(2)}s</span>)</p>
+          <p className="text-[11px] text-muted-foreground tabular-nums" aria-label="Character counts">chars: translation <span className="font-mono">{translationChars}</span>{summaryChars ? <> · summary <span className="font-mono">{summaryChars}</span></> : null}</p>
           {/* Progress / duration representation */}
           {phases?.length > 0 && totalMs > 0 && (
             <div className="space-y-1" aria-label="Total processing duration">

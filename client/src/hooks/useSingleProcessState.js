@@ -19,6 +19,8 @@ export function useSingleProcessState() {
   const [totalMs, setTotalMs] = useState(0);
   const [retries, setRetries] = useState({ portia: 0, translation: 0, tts: 0 });
   const [headers, setHeaders] = useState({});
+  const [translationChars, setTranslationChars] = useState(0);
+  const [summaryChars, setSummaryChars] = useState(0);
   const [error, setError] = useState(null);
 
   const reset = useCallback(() => {
@@ -40,14 +42,16 @@ export function useSingleProcessState() {
   setTotalMs(0);
   setRetries({ portia: 0, translation: 0, tts: 0 });
   setHeaders({});
+  setTranslationChars(0);
+  setSummaryChars(0);
     setError(null);
   }, [audioSrc]);
 
   return {
     // state
-  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, error,
+  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, error,
     // setters
-  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setError,
+  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setError,
     // helpers
     reset,
   };

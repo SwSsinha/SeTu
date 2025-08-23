@@ -152,6 +152,8 @@ router.post(
 					translation: m.translationRetries || 0,
 					tts: m.ttsRetries || 0,
 				},
+				translationChars: entry.meta.textChars || 0,
+				summaryChars: (entry.meta.summary || '').length,
 				audio: {
 					mime: 'audio/mpeg',
 					base64: entry.audioBuffer.toString('base64'),
@@ -262,6 +264,8 @@ router.post(
 			summary: summaryText,
 			partial: translationResult.partial || false,
 			ttsProvider,
+			translationChars: translated.length,
+			summaryChars: summaryText.length,
 			retries: {
 				portia: metrics.portiaRetries || 0,
 				translation: metrics.translationRetries || 0,

@@ -66,6 +66,8 @@ async function postProcessTimeline({ url, lang }) {
 		},
 		phases: json?.phases || [],
 		summary: json?.summary || '',
+		translationChars: json?.translationChars || 0,
+		summaryChars: json?.summaryChars || 0,
 		partial: json?.partial || (headerMap['x-partial'] === '1'),
 		resultId: json?.resultId || headerMap['x-result-id'] || null,
 		totalMs: json?.totalMs || 0,
