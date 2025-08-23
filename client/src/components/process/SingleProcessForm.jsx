@@ -92,6 +92,26 @@ export default function SingleProcessForm() {
     }
   }, [voice]);
 
+  // Load persisted language preference (Step 6.5)
+  useEffect(() => {
+    try {
+      const savedLang = localStorage.getItem('setu.lang');
+      if (savedLang && /^[a-z-]{2,5}$/.test(savedLang)) {
+        setLang(savedLang);
+        if (!presetLangs.includes(savedLang)) setCustomLang(savedLang);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist language when valid (Step 6.5)
+  useEffect(() => {
+    const effective = isCustomLang ? customLangTrimmed : lang;
+    if (effective && /^[a-z-]{2,5}$/.test(effective)) {
+      try { localStorage.setItem('setu.lang', effective); } catch {}
+    }
+  }, [lang, isCustomLang, customLangTrimmed]);
+
   return (
     <Card className="p-6 space-y-4" role="region" aria-labelledby="single-process-heading">
       <div>
