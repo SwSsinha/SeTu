@@ -224,6 +224,29 @@ export default function App() {
                 variant="outline"
                 className="flex-1"
                 disabled={!audioSrc}
+                onClick={(e) => {
+                  e.preventDefault()
+                  if (!audioSrc) return
+                  const text = `Listen to this translated audio from SeTu: ${audioSrc}`
+                  const encoded = encodeURIComponent(text)
+                  // Try whatsapp protocol first (mobile), fallback to web API.
+                  const waProtocol = `whatsapp://send?text=${encoded}`
+                  const waWeb = `https://api.whatsapp.com/send?text=${encoded}`
+                  const opened = window.open(waProtocol, '_blank', 'noopener,noreferrer')
+                  // Some browsers block / fail protocol handlers on desktop; fallback.
+                  setTimeout(() => {
+                    if (!opened || opened.closed) {
+                      window.open(waWeb, '_blank', 'noopener,noreferrer')
+                    }
+                  }, 400)
+                }}
+              >
+                Share
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                disabled={!audioSrc}
                 onClick={async (e) => {
                   e.preventDefault()
                   if (!audioSrc) return
