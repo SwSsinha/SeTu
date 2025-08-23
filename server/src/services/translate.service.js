@@ -7,10 +7,10 @@ const SLEEP = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * translateText
- * Input: { text: string, targetLang?: string }  // default 'hi'
- * Output: string (translated text)
+ * Input: { text: string, targetLang?: string, allowPartial?: boolean }
+ * Output: { text: string, partial: boolean, chunks: number, failedChunk?: number }
  */
-async function translateText({ text, targetLang = 'hi' }) {
+async function translateText({ text, targetLang = 'hi', allowPartial = false }) {
   if (!text || !text.trim()) {
     const err = new Error('Missing text to translate');
     err.status = 400;
@@ -28,11 +28,14 @@ async function translateText({ text, targetLang = 'hi' }) {
         });
         const translated = resp?.data?.responseData?.translatedText;
         if (!translated) throw new Error('Empty translation');
-        return String(translated).trim();
+        return { text: String(translated).trim(), partial: false, chunks: 1 };
       } catch (e) {
         lastErr = e;
         if (attempt < MAX_RETRIES) await SLEEP(300 * (attempt + 1));
       }
+    }
+    if (allowPartial) {
+      return { text: '', partial: true, chunks: 0, failedChunk: 0, error: lastErr?.message };
     }
     const err = new Error('Translation failed');
     err.status = 502;
@@ -75,15 +78,18 @@ async function translateText({ text, targetLang = 'hi' }) {
         lastErr = e;
         if (attempt < MAX_RETRIES) await SLEEP(300 * (attempt + 1));
         else {
-          const err = new Error('Translation failed on a chunk');
-          err.status = 502;
-          err.detail = { lastErr: lastErr?.message };
-          throw err;
+          if (allowPartial) {
+            return { text: outputs.join(' '), partial: true, chunks: chunks.length, failedChunk: outputs.length, error: lastErr?.message };
+          } else {
+            const err = new Error('Translation failed on a chunk');
+            err.status = 502;
+            err.detail = { lastErr: lastErr?.message };
+            throw err;
+          }
         }
       }
     }
   }
-  return outputs.join(' ');
+  return { text: outputs.join(' '), partial: false, chunks: chunks.length };
 }
-
 module.exports = { translateText };

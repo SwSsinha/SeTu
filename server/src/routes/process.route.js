@@ -33,8 +33,21 @@ router.post(
 
 		const articleText = await scrapeArticle({ url });
 		const summaryText = summarize(articleText);
-		const translated = await translateText({ text: articleText, targetLang: lang });
-		const audioStream = await synthesizeToMp3Stream({ text: translated, voiceId: voice });
+		const translationResult = await translateText({ text: articleText, targetLang: lang, allowPartial: true });
+		let ttsText = translationResult.text;
+		if (!ttsText || ttsText.trim().length < 5) {
+			// fallback: small slice of original article if translation empty
+			ttsText = articleText.slice(0, 400);
+		}
+		let audioStream;
+		try {
+			audioStream = await synthesizeToMp3Stream({ text: ttsText, voiceId: voice });
+		} catch (e) {
+			if (!translationResult.partial) throw e; // full failure if translation wasn't partial
+			// If TTS fails after partial translation, fall back to smaller chunk
+			const fallback = ttsText.slice(0, 800);
+			audioStream = await synthesizeToMp3Stream({ text: fallback, voiceId: voice });
+		}
 
 		// Buffer audio to cache & send
 		const buf = await streamToBuffer(audioStream);
@@ -42,7 +55,7 @@ router.post(
 			{ url, lang, voice },
 			{
 				audioBuffer: buf,
-				meta: { url, lang, voice, textChars: translated.length, summary: summaryText },
+				meta: { url, lang, voice, textChars: ttsText.length, summary: summaryText, partial: translationResult.partial },
 			}
 		);
 		res.setHeader('X-Cache-Hit', '0');
@@ -52,6 +65,7 @@ router.post(
 			const preview = encodeURIComponent(summaryText.slice(0, 120));
 			res.setHeader('X-Summary-Preview', preview);
 		}
+		if (translationResult.partial) res.setHeader('X-Partial', '1');
 		res.setHeader('Content-Type', 'audio/mpeg');
 		res.setHeader('Content-Disposition', `attachment; filename="setu_${lang}.mp3"`);
 		return Readable.from(buf).pipe(res);
@@ -124,18 +138,32 @@ router.post(
 
 		let translatePhase = tracker.start('translate');
 		let translated;
+		let translationResult;
 		try {
-			translated = await translateText({ text: articleText, targetLang: lang });
-			tracker.succeed(translatePhase, { length: translated.length });
+			translationResult = await translateText({ text: articleText, targetLang: lang, allowPartial: true });
+			translated = translationResult.text;
+			tracker.succeed(translatePhase, { length: translated.length, partial: translationResult.partial });
 		} catch (e) {
+			// If translation threw without partial data, hard fail
 			tracker.fail(translatePhase, e);
-			return res.status(e.status || 500).json({ ...tracker.summary(), status: 'error' });
+			return res.status(e.status || 500).json({ ...tracker.summary(), status: 'error', partial: false });
 		}
 
 		let ttsPhase = tracker.start('tts');
 		let audioBuffer;
 		try {
-			const audioStream = await synthesizeToMp3Stream({ text: translated, voiceId: voice });
+			let ttsText = translated;
+			if (!ttsText || ttsText.trim().length < 5) {
+				ttsText = articleText.slice(0, 400);
+			}
+			let audioStream;
+			try {
+				audioStream = await synthesizeToMp3Stream({ text: ttsText, voiceId: voice });
+			} catch (e) {
+				if (!translationResult.partial) throw e;
+				const fallback = ttsText.slice(0, 800);
+				audioStream = await synthesizeToMp3Stream({ text: fallback, voiceId: voice });
+			}
 			if (!(audioStream instanceof Readable)) {
 				const r = new Readable();
 				r.push(audioStream); r.push(null);
@@ -143,10 +171,10 @@ router.post(
 			} else {
 				audioBuffer = await streamToBuffer(audioStream);
 			}
-			tracker.succeed(ttsPhase, { bytes: audioBuffer.length, voice: voice || null });
+			tracker.succeed(ttsPhase, { bytes: audioBuffer.length, voice: voice || null, partial: translationResult.partial || false });
 		} catch (e) {
 			tracker.fail(ttsPhase, e);
-			return res.status(e.status || 500).json({ ...tracker.summary(), status: 'error' });
+			return res.status(e.status || 500).json({ ...tracker.summary(), status: 'error', partial: translationResult?.partial || false });
 		}
 
 		// Store in cache
@@ -154,7 +182,7 @@ router.post(
 			{ url, lang, voice },
 			{
 				audioBuffer,
-				meta: { url, lang, voice, textChars: translated.length, summary: summaryText },
+				meta: { url, lang, voice, textChars: translated.length, summary: summaryText, partial: translationResult.partial },
 			}
 		);
 
@@ -168,6 +196,7 @@ router.post(
 			lang,
 			voice: voice || null,
 			summary: summaryText,
+			partial: translationResult.partial || false,
 			audio: {
 				mime: 'audio/mpeg',
 				base64: audioBuffer.toString('base64'),
