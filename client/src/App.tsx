@@ -221,6 +221,22 @@ export default function App() {
                 Download
               </Button>
               <Button
+                variant="outline"
+                className="flex-1"
+                disabled={!audioSrc}
+                onClick={async (e) => {
+                  e.preventDefault()
+                  if (!audioSrc) return
+                  try {
+                    await navigator.clipboard.writeText(audioSrc)
+                  } catch (err) {
+                    console.warn('Clipboard copy failed', err)
+                  }
+                }}
+              >
+                Copy Link
+              </Button>
+              <Button
                 className="flex-1"
                 onClick={(e) => {
                   e.preventDefault()
