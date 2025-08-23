@@ -112,6 +112,32 @@ export default function SingleProcessForm() {
       {status === 'done' && audioSrc && (
         <div className="mt-6 space-y-3" aria-label="Result audio section">
           <audio src={audioSrc} controls className="w-full" aria-label="Generated audio" />
+          {phases?.length > 0 && (
+            <div className="border rounded-md p-3 bg-muted/30">
+              <h2 className="text-sm font-medium mb-2">Phases</h2>
+              <ul className="space-y-1 text-xs">
+                {phases.map((p) => (
+                  <li key={p.name} className="flex items-center justify-between">
+                    <span className="font-mono">{p.name}</span>
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={
+                          p.status === 'success'
+                            ? 'text-green-600 dark:text-green-400'
+                            : p.status === 'error'
+                              ? 'text-destructive'
+                              : 'text-amber-600'
+                        }
+                      >
+                        {p.status}
+                      </span>
+                      {typeof p.ms === 'number' && <span className="tabular-nums text-muted-foreground">{p.ms}ms</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
