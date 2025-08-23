@@ -100,7 +100,7 @@ export default function SingleProcessForm() {
       {status === 'done' && audioSrc && (
         <div className="mt-6 space-y-3" aria-label="Result audio section">
           <audio src={audioSrc} controls className="w-full" aria-label="Generated audio" />
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               variant="outline"
@@ -116,6 +116,28 @@ export default function SingleProcessForm() {
               }}
             >
               Download
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                if (!audioSrc) return;
+                try {
+                  await navigator.clipboard.writeText(audioSrc);
+                } catch {
+                  // fallback: create temporary input
+                  const tmp = document.createElement('input');
+                  tmp.value = audioSrc;
+                  document.body.appendChild(tmp);
+                  tmp.select();
+                  document.execCommand('copy');
+                  tmp.remove();
+                }
+              }}
+              aria-label="Copy audio link to clipboard"
+            >
+              Copy Link
             </Button>
             <Button type="button" variant="secondary" onClick={reset} size="sm">Translate Another</Button>
           </div>
