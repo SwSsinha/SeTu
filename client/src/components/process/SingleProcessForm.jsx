@@ -11,8 +11,8 @@ import { Badge } from '../ui/badge';
 // Static single process form (Step 1.3) – only structure, no logic yet.
 export default function SingleProcessForm() {
   const {
-    url, lang, status, audioSrc, audioBlob, phases, summary, resultId, partial, error,
-    setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setPartial, setError, reset,
+    url, lang, status, audioSrc, audioBlob, phases, summary, resultId, partial, ttsProvider, error,
+    setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setPartial, setTtsProvider, setError, reset,
   } = useSingleProcessState();
 
   const disabled = status === 'loading';
@@ -32,13 +32,14 @@ export default function SingleProcessForm() {
   setStatus('loading');
     try {
   // Switch to timeline endpoint (Step 4.1)
-  const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, partial: part } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang });
+  const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, partial: part, json } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang });
   if (objectUrl) setAudioSrc(objectUrl);
   if (blob) setAudioBlob(blob);
   setPhases(ph);
   setSummary(sum);
   setResultId(rid);
   setPartial(part);
+  if (json?.ttsProvider) setTtsProvider(json.ttsProvider);
       setStatus('done');
     } catch (err) {
       setError(err.message || 'Failed');
@@ -113,11 +114,12 @@ export default function SingleProcessForm() {
       {status === 'done' && audioSrc && (
         <div className="mt-6 space-y-3" aria-label="Result audio section">
           <audio src={audioSrc} controls className="w-full" aria-label="Generated audio" />
-          {summary && (
+      {summary && (
             <div className="border rounded-md p-3 bg-muted/30 space-y-2" aria-label="Summary text">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-medium">Summary</h2>
                 {partial && <Badge variant="secondary">Partial</Badge>}
+        {ttsProvider === 'fallback' && <Badge variant="destructive">Fallback TTS</Badge>}
               </div>
               <p className="text-sm leading-snug whitespace-pre-line">
                 {summary}

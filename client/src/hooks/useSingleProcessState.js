@@ -13,6 +13,7 @@ export function useSingleProcessState() {
   const [summary, setSummary] = useState('');
   const [resultId, setResultId] = useState(null);
   const [partial, setPartial] = useState(false);
+  const [ttsProvider, setTtsProvider] = useState(null);
   const [error, setError] = useState(null);
 
   const reset = useCallback(() => {
@@ -28,14 +29,15 @@ export function useSingleProcessState() {
   setSummary('');
   setResultId(null);
   setPartial(false);
+  setTtsProvider(null);
     setError(null);
   }, [audioSrc]);
 
   return {
     // state
-  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, partial, error,
+  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, partial, ttsProvider, error,
     // setters
-  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setPartial, setError,
+  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setPartial, setTtsProvider, setError,
     // helpers
     reset,
   };
