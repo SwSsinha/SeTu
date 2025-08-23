@@ -24,6 +24,8 @@ export default function App() {
   const [lang, setLang] = useState<string>('hi')
   const [status, setStatus] = useState<Status>('idle')
   const [audioSrc, setAudioSrc] = useState<string | null>(null)
+  const [audioDuration, setAudioDuration] = useState<number | null>(null)
+  const [resultId, setResultId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   // Step 5.1: History state (hydrated from localStorage on mount)
   const [history, setHistory] = useState<HistoryItem[]>([])
@@ -43,6 +45,18 @@ export default function App() {
     }
   }, [])
 
+  // Load audio duration metadata when audioSrc changes
+  useEffect(() => {
+    if (!audioSrc) return
+    const el = document.createElement('audio')
+    const onLoaded = () => {
+      if (isFinite(el.duration)) setAudioDuration(el.duration)
+    }
+    el.addEventListener('loadedmetadata', onLoaded)
+    el.src = audioSrc + (audioSrc.includes('?') ? '&' : '?') + 't=' + Date.now()
+    return () => el.removeEventListener('loadedmetadata', onLoaded)
+  }, [audioSrc])
+
   // Step 2.3: API call handler (POST /api/process)
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
@@ -54,26 +68,24 @@ export default function App() {
         url,
         targetLang: lang,
       })
-      // Placeholder success handling; detailed wiring (resultId, audio, timeline) comes in later steps
+      // Audio integration with backend resultId
       if (response.status === 200) {
+        const { resultId: rid, audioUrl } = response.data || {}
+        setResultId(rid || null)
+        const resolvedAudio = audioUrl || (rid ? `/api/results/${rid}/audio` : null)
+        setAudioSrc(resolvedAudio)
         setStatus('success')
-        // Step 5.2: Persist success to history (local-only for now)
         const newItem: HistoryItem = {
-          id: Date.now().toString(),
-            // Keep original URL & lang
+          id: (rid || Date.now()).toString(),
           url,
           targetLang: lang,
           createdAt: new Date().toISOString(),
           status: 'success',
-          audioUrl: null as any, // placeholder until audio wiring
+          audioUrl: resolvedAudio || undefined,
         }
         setHistory((prev) => {
           const next = [...prev, newItem]
-          try {
-            localStorage.setItem('setu_history', JSON.stringify(next))
-          } catch (e) {
-            console.warn('Failed saving history to localStorage', e)
-          }
+          try { localStorage.setItem('setu_history', JSON.stringify(next)) } catch {}
           return next
         })
       } else {
@@ -191,7 +203,11 @@ export default function App() {
           <Card className="space-y-4 w-full max-w-xl">
             <div className="space-y-1">
               <h2 className="text-lg font-semibold">Success</h2>
-              <p className="text-xs text-slate-400">Your article was processed. Preview the audio below.</p>
+              <p className="text-xs text-slate-400">Your article was processed. {audioDuration && (
+                <span className="text-slate-300">Audio {Math.round(audioDuration)}s</span>
+              )} {resultId && (
+                <span className="text-slate-500">• ID {resultId}</span>
+              )}</p>
             </div>
             <div>
               {audioSrc ? (
