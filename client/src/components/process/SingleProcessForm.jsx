@@ -33,7 +33,7 @@ export default function SingleProcessForm() {
   setStatus('loading');
     try {
       // Timeline endpoint – includes phases, summary, totalMs (Step 4.6 adds totalMs usage)
-  const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, runId: rrun, partial: part, cacheHit: cHit, totalMs: tot, retries: rtries, headers: hdrs, translationChars: tChars, summaryChars: sChars, json } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang });
+  const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, runId: rrun, partial: part, cacheHit: cHit, totalMs: tot, retries: rtries, headers: hdrs, translationChars: tChars, summaryChars: sChars, json } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang, voice });
   if (objectUrl) setAudioSrc(objectUrl);
   if (blob) setAudioBlob(blob);
   setPhases(ph);
@@ -96,6 +96,20 @@ export default function SingleProcessForm() {
               <option value="hi">Hindi (hi)</option>
               <option value="bn">Bengali (bn)</option>
               <option value="es">Spanish (es)</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="voice">Voice</Label>
+            <select
+              id="voice"
+              className="w-full border border-border bg-background rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+              value={voice}
+              onChange={(e)=> setVoice(e.target.value)}
+              aria-label="Voice selection"
+            >
+              {voicesLoading && <option value="" disabled>Loading voices…</option>}
+              {!voicesLoading && voices.length === 0 && <option value="" disabled>No voices</option>}
+              {!voicesLoading && voices.map(v => <option key={v} value={v}>{v}</option>)}
             </select>
           </div>
           <div>

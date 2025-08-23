@@ -24,11 +24,11 @@ export const apiClient = {
 };
 
 // Timeline variant returning JSON with phases & base64 audio.
-async function postProcessTimeline({ url, lang }) {
+async function postProcessTimeline({ url, lang, voice }) {
 	const res = await fetch(`${base}/process/timeline`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ url, lang }),
+		body: JSON.stringify({ url, lang, voice }),
 	});
 	if (!res.ok) {
 		let msg = `Request failed (${res.status})`;

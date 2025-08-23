@@ -2,7 +2,7 @@ const MAX_URL_LENGTH = 1500; // conservative practical limit
 const MAX_TEXT_LENGTH = 20000; // safeguard to avoid runaway translation size
 
 module.exports = (req, res, next) => {
-  const { url, lang, text } = req.body || {};
+  const { url, lang, text, voice } = req.body || {};
   if (!url || typeof url !== 'string') {
     return res.status(400).json({ error: 'Invalid or missing "url"' });
   }
@@ -33,6 +33,6 @@ module.exports = (req, res, next) => {
     return res.status(400).json({ error: 'Invalid "lang" code' });
   }
 
-  req.processInput = { url, lang: normalizedLang, text: cleanedText };
+  req.processInput = { url, lang: normalizedLang, text: cleanedText, voice };
   next();
 };
