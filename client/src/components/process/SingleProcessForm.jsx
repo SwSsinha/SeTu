@@ -9,7 +9,7 @@ import { apiClient } from '../../lib/apiClient';
 export default function SingleProcessForm() {
   const {
     url, lang, status, audioSrc, error,
-    setUrl, setLang, setStatus, setAudioSrc, setError,
+  setUrl, setLang, setStatus, setAudioSrc, setError, reset,
   } = useSingleProcessState();
 
   const disabled = status === 'loading';
@@ -64,16 +64,19 @@ export default function SingleProcessForm() {
               {status === 'loading' ? 'Processing...' : 'Process'}
             </Button>
           </div>
-          {error && (
-            <p className="text-sm text-destructive" role="alert">{String(error)}</p>
-          )}
-          {audioSrc && (
-            <div className="pt-2">
-              <audio src={audioSrc} controls className="w-full" />
-            </div>
-          )}
         </fieldset>
       </form>
+      {error && (
+        <div className="mt-4" role="alert">
+          <p className="text-sm text-destructive">{String(error)}</p>
+        </div>
+      )}
+      {status === 'done' && audioSrc && (
+        <div className="mt-6 space-y-3" aria-label="Result audio section">
+          <audio src={audioSrc} controls className="w-full" aria-label="Generated audio" />
+          <Button type="button" variant="secondary" onClick={reset} size="sm">Translate Another</Button>
+        </div>
+      )}
     </Card>
   );
 }
