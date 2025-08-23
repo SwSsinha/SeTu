@@ -16,6 +16,7 @@ export default {
       },
     },
   },
-  darkMode: 'media',
+  // Use class strategy so we can toggle dark mode regardless of OS setting
+  darkMode: 'class',
   plugins: [],
 };
