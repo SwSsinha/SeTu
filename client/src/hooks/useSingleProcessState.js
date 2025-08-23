@@ -8,21 +8,26 @@ export function useSingleProcessState() {
   const [lang, setLang] = useState('en');
   const [status, setStatus] = useState(INITIAL_STATUS);
   const [audioSrc, setAudioSrc] = useState(null); // object URL or remote URL
+  const [audioBlob, setAudioBlob] = useState(null);
   const [error, setError] = useState(null);
 
   const reset = useCallback(() => {
+    if (audioSrc) {
+      try { URL.revokeObjectURL(audioSrc); } catch {}
+    }
     setUrl('');
     setLang('en');
     setStatus(INITIAL_STATUS);
     setAudioSrc(null);
+    setAudioBlob(null);
     setError(null);
-  }, []);
+  }, [audioSrc]);
 
   return {
     // state
-    url, lang, status, audioSrc, error,
+  url, lang, status, audioSrc, audioBlob, error,
     // setters
-    setUrl, setLang, setStatus, setAudioSrc, setError,
+  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setError,
     // helpers
     reset,
   };

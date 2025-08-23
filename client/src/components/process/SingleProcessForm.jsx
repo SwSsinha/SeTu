@@ -10,8 +10,8 @@ import { Alert } from '../ui/alert';
 // Static single process form (Step 1.3) – only structure, no logic yet.
 export default function SingleProcessForm() {
   const {
-    url, lang, status, audioSrc, error,
-  setUrl, setLang, setStatus, setAudioSrc, setError, reset,
+    url, lang, status, audioSrc, audioBlob, error,
+    setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setError, reset,
   } = useSingleProcessState();
 
   const disabled = status === 'loading';
@@ -30,8 +30,9 @@ export default function SingleProcessForm() {
     setAudioSrc(null);
   setStatus('loading');
     try {
-      const { objectUrl } = await apiClient.postProcess({ url: urlTrimmed, lang });
-      setAudioSrc(objectUrl);
+  const { objectUrl, blob } = await apiClient.postProcess({ url: urlTrimmed, lang });
+  setAudioSrc(objectUrl);
+  setAudioBlob(blob);
       setStatus('done');
     } catch (err) {
       setError(err.message || 'Failed');
@@ -99,7 +100,25 @@ export default function SingleProcessForm() {
       {status === 'done' && audioSrc && (
         <div className="mt-6 space-y-3" aria-label="Result audio section">
           <audio src={audioSrc} controls className="w-full" aria-label="Generated audio" />
-          <Button type="button" variant="secondary" onClick={reset} size="sm">Translate Another</Button>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (!audioSrc) return;
+                const a = document.createElement('a');
+                a.href = audioSrc;
+                a.download = `setu_${lang}.mp3`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+              }}
+            >
+              Download
+            </Button>
+            <Button type="button" variant="secondary" onClick={reset} size="sm">Translate Another</Button>
+          </div>
         </div>
       )}
     </Card>
