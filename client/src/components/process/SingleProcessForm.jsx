@@ -128,7 +128,12 @@ export default function SingleProcessForm() {
         <div className="mt-6 space-y-3" aria-label="Result audio section">
           <audio src={audioSrc} controls className="w-full" aria-label="Generated audio" />
           <p className="text-[11px] text-muted-foreground tabular-nums" aria-label="Identifiers">runId: <span className="font-mono">{runId || '—'}</span>{resultId && <> · resultId: <span className="font-mono">{resultId}</span></>}{cacheHit && ' · cacheHit'}</p>
-          <p className="text-[11px] text-muted-foreground tabular-nums" aria-label="Retries">retries p/t/t: {retries.portia}/{retries.translation}/{retries.tts}</p>
+          <div className="text-[11px] text-muted-foreground tabular-nums flex flex-wrap gap-x-3 gap-y-1" aria-label="Retries breakdown">
+            <span>Retries:</span>
+            <span title="Portia scrape retries" className={retries.portia ? 'text-amber-600 dark:text-amber-400 font-medium' : ''}>Portia <span className="font-mono">{retries.portia}</span></span>
+            <span title="Translation retries" className={retries.translation ? 'text-amber-600 dark:text-amber-400 font-medium' : ''}>Translation <span className="font-mono">{retries.translation}</span></span>
+            <span title="TTS retries" className={retries.tts ? 'text-amber-600 dark:text-amber-400 font-medium' : ''}>TTS <span className="font-mono">{retries.tts}</span></span>
+          </div>
           {/* Progress / duration representation */}
           {phases?.length > 0 && totalMs > 0 && (
             <div className="space-y-1" aria-label="Total processing duration">
