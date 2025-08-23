@@ -9,6 +9,7 @@ const { createPhaseTracker } = require('../utils/phaseTracker');
 const { Readable } = require('stream');
 const { getCached, setCached } = require('../utils/cache');
 const { summarize } = require('../utils/summary');
+const { pushRun } = require('../utils/history');
 
 const router = Router();
 
@@ -36,6 +37,7 @@ router.post(
 		}
 
 		const metrics = {};
+		const startTs = Date.now();
 		const articleText = await scrapeArticle({ url, metrics });
 		const summaryText = summarize(articleText);
 		const translationResult = await translateText({ text: articleText, targetLang: lang, allowPartial: true, metrics });
@@ -63,6 +65,18 @@ router.post(
 				meta: { url, lang, voice, textChars: ttsText.length, summary: summaryText, partial: translationResult.partial, metrics },
 			}
 		);
+		pushRun({
+			runId,
+			resultId: id,
+			url,
+			lang,
+			voice: voice || null,
+			cacheHit: false,
+			partial: translationResult.partial || false,
+			retries: { portia: metrics.portiaRetries || 0, translation: metrics.translationRetries || 0, tts: metrics.ttsRetries || 0 },
+			summaryLen: summaryText.length,
+			durationMs: Date.now() - startTs,
+		});
 		res.setHeader('X-Cache-Hit', '0');
 		if (id) res.setHeader('X-Result-Id', id);
 		res.setHeader('X-Run-Id', runId);
@@ -107,6 +121,18 @@ router.post(
 			tracker.succeed(cachePhase, { key, bytes: entry.audioBuffer.length, voice: entry.meta.voice });
 			const summary = tracker.summary();
 			const m = entry.meta?.metrics || {};
+			pushRun({
+				runId,
+				resultId: entry.id,
+				url,
+				lang,
+				voice: entry.meta.voice || null,
+				cacheHit: true,
+				partial: entry.meta.partial || false,
+				retries: { portia: m.portiaRetries || 0, translation: m.translationRetries || 0, tts: m.ttsRetries || 0 },
+				summaryLen: (entry.meta.summary || '').length,
+				durationMs: 0,
+			});
 			return res.json({
 				...summary,
 				status: 'success',
@@ -132,6 +158,7 @@ router.post(
 		}
 
 		let scrapePhase = tracker.start('scrape');
+		const startTs = Date.now();
 		let articleText;
 		try {
 			articleText = await scrapeArticle({ url, metrics });
@@ -200,6 +227,18 @@ router.post(
 				meta: { url, lang, voice, textChars: translated.length, summary: summaryText, partial: translationResult.partial, metrics },
 			}
 		);
+		pushRun({
+			runId,
+			resultId: id,
+			url,
+			lang,
+			voice: voice || null,
+			cacheHit: false,
+			partial: translationResult.partial || false,
+			retries: { portia: metrics.portiaRetries || 0, translation: metrics.translationRetries || 0, tts: metrics.ttsRetries || 0 },
+			summaryLen: summaryText.length,
+			durationMs: Date.now() - startTs,
+		});
 
 		const summary = tracker.summary();
 		res.json({
