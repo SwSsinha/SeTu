@@ -4,3 +4,18 @@ dist
 *.log
 *.local
 package-lock.json
+# Editors / tooling
+.idea/
+.vscode/
+
+# Coverage / build artifacts
+coverage/
+
+# Env (left committed .env.local intentionally for this project)
+.env*
+!.env.local
+
+# Lockfiles (only using npm lock intentionally ignored)
+yarn.lock
+pnpm-lock.yaml
+
