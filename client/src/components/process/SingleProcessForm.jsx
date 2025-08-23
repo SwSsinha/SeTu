@@ -6,6 +6,7 @@ import { useSingleProcessState } from '../../hooks/useSingleProcessState';
 import { apiClient } from '../../lib/apiClient';
 import { Spinner } from '../shared/Spinner';
 import { Alert } from '../ui/alert';
+import { Badge } from '../ui/badge';
 
 // Static single process form (Step 1.3) – only structure, no logic yet.
 export default function SingleProcessForm() {
@@ -113,8 +114,11 @@ export default function SingleProcessForm() {
         <div className="mt-6 space-y-3" aria-label="Result audio section">
           <audio src={audioSrc} controls className="w-full" aria-label="Generated audio" />
           {summary && (
-            <div className="border rounded-md p-3 bg-muted/30" aria-label="Summary text">
-              <h2 className="text-sm font-medium mb-2">Summary</h2>
+            <div className="border rounded-md p-3 bg-muted/30 space-y-2" aria-label="Summary text">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-medium">Summary</h2>
+                {partial && <Badge variant="secondary">Partial</Badge>}
+              </div>
               <p className="text-sm leading-snug whitespace-pre-line">
                 {summary}
               </p>
