@@ -105,6 +105,12 @@ export default function App() {
                   </div>
                 </Alert>
               )}
+              {/* Step 4.1: Example buttons (static, no logic yet) */}
+              <div className="pt-4 flex flex-wrap gap-2 text-xs">
+                <Button variant="outline" className="h-8">Example: Tech Blog</Button>
+                <Button variant="outline" className="h-8">Example: News Article</Button>
+                <Button variant="outline" className="h-8">Example: Research Post</Button>
+              </div>
             </form>
           </Card>
         )}
