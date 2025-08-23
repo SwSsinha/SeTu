@@ -12,8 +12,10 @@ export function useSingleProcessState() {
   const [phases, setPhases] = useState([]); // timeline phases from /timeline endpoint
   const [summary, setSummary] = useState('');
   const [resultId, setResultId] = useState(null);
+  const [runId, setRunId] = useState(null);
   const [partial, setPartial] = useState(false);
   const [ttsProvider, setTtsProvider] = useState(null);
+  const [totalMs, setTotalMs] = useState(0);
   const [error, setError] = useState(null);
 
   const reset = useCallback(() => {
@@ -28,16 +30,18 @@ export function useSingleProcessState() {
   setPhases([]);
   setSummary('');
   setResultId(null);
+  setRunId(null);
   setPartial(false);
   setTtsProvider(null);
+  setTotalMs(0);
     setError(null);
   }, [audioSrc]);
 
   return {
     // state
-  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, partial, ttsProvider, error,
+  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, ttsProvider, totalMs, error,
     // setters
-  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setPartial, setTtsProvider, setError,
+  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setTtsProvider, setTotalMs, setError,
     // helpers
     reset,
   };

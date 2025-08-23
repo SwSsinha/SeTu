@@ -55,10 +55,12 @@ async function postProcessTimeline({ url, lang }) {
 	}
 	return {
 		json,
+		runId: json?.runId || null,
 		phases: json?.phases || [],
 		summary: json?.summary || '',
 		partial: json?.partial || false,
 		resultId: json?.resultId || null,
+		totalMs: json?.totalMs || 0,
 		blob,
 		objectUrl,
 	};

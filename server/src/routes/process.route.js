@@ -113,6 +113,7 @@ router.post(
 	validateProcess,
 	asyncHandler(async (req, res) => {
 		const runId = generateRunId();
+		res.setHeader('X-Run-Id', runId);
 		const tracker = createPhaseTracker(runId);
 		const { url, lang, voice } = req.processInput;
 		const metrics = {};
@@ -138,6 +139,7 @@ router.post(
 			});
 			recordRun({ cacheHit: true, partial: entry.meta.partial || false, audioBytes: entry.audioBuffer.length, phases: [] });
 			return res.json({
+				runId,
 				...summary,
 				status: 'success',
 				cacheHit: true,
@@ -169,7 +171,7 @@ router.post(
 			tracker.succeed(scrapePhase, { length: articleText.length, retries: metrics.portiaRetries || 0 });
 		} catch (e) {
 			tracker.fail(scrapePhase, e);
-			return res.status(e.status || 500).json({ ...tracker.summary(), status: 'error' });
+			return res.status(e.status || 500).json({ runId, ...tracker.summary(), status: 'error' });
 		}
 
 		// Summary phase (after scrape, before translation)
@@ -192,7 +194,7 @@ router.post(
 		} catch (e) {
 			// If translation threw without partial data, hard fail
 			tracker.fail(translatePhase, e);
-			return res.status(e.status || 500).json({ ...tracker.summary(), status: 'error', partial: false });
+			return res.status(e.status || 500).json({ runId, ...tracker.summary(), status: 'error', partial: false });
 		}
 
 		let ttsPhase = tracker.start('tts');
@@ -222,7 +224,7 @@ router.post(
 			tracker.succeed(ttsPhase, { bytes: audioBuffer.length, voice: voice || null, partial: translationResult.partial || false, retries: metrics.ttsRetries || 0 });
 		} catch (e) {
 			tracker.fail(ttsPhase, e);
-			return res.status(e.status || 500).json({ ...tracker.summary(), status: 'error', partial: translationResult?.partial || false });
+			return res.status(e.status || 500).json({ runId, ...tracker.summary(), status: 'error', partial: translationResult?.partial || false });
 		}
 
 		// Store in cache
@@ -249,6 +251,7 @@ router.post(
 
 		const summary = tracker.summary();
 		res.json({
+			runId,
 			...summary,
 			status: 'success',
 			cacheHit: false,
