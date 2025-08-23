@@ -125,6 +125,18 @@ export default function SingleProcessForm() {
         <h1 id="single-process-heading" className="text-2xl font-bold tracking-tight">Single Process</h1>
         <p className="text-sm text-muted-foreground">Enter a URL to generate summary, translation & audio.</p>
       </div>
+      {/* Example URLs (Step 7.1) */}
+      <div className="flex flex-wrap gap-2" aria-label="Example URLs">
+        <Button type="button" variant="outline" size="sm" onClick={() => setUrl('https://en.wikipedia.org/wiki/Artificial_intelligence')}>
+          Try AI (Wikipedia)
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => setUrl('https://www.un.org/en/climatechange/what-is-climate-change')}>
+          Try Climate (UN)
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => setUrl('https://www.britannica.com/technology/blockchain')}>
+          Try Blockchain
+        </Button>
+      </div>
   <form className="space-y-5" aria-describedby="single-process-desc" onSubmit={handleSubmit} noValidate>
         <p id="single-process-desc" className="sr-only">Provide source URL and select target language to process content.</p>
         <fieldset className="space-y-5" disabled={disabled} aria-busy={disabled} aria-live="polite">
