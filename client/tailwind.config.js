@@ -1,22 +1,14 @@
 /**
- * Tailwind CSS Configuration
- * Content paths tuned to Vite React project structure.
+ * Tailwind config placeholder – will be updated after shadcn init.
  */
 export default {
+  darkMode: 'class',
   content: [
     './index.html',
-    './src/**/*.{js,jsx,ts,tsx}',
+    './src/**/*.{js,jsx}',
   ],
   theme: {
-    extend: {
-      colors: {
-        ink: {
-          900: '#0e1116',
-        },
-      },
-    },
+    extend: {},
   },
-  // Use class strategy so we can toggle dark mode regardless of OS setting
-  darkMode: 'class',
   plugins: [],
 };

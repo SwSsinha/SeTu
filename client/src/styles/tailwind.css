@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Layer extension placeholders */
+@layer base {
+  :root { /* CSS vars for shadcn will be inserted later */ }
+}
