@@ -257,6 +257,11 @@ export default function SingleProcessForm() {
       {status === 'done' && audioSrc && (
         <div className="mt-6 space-y-3" aria-label="Result audio section">
           <audio src={audioSrc} controls className="w-full" aria-label="Generated audio" />
+          {cacheHit && (
+            <div>
+              <Badge variant="outline" aria-label="Served from cache">Served from cache</Badge>
+            </div>
+          )}
           <p className="text-[11px] text-muted-foreground tabular-nums" aria-label="Identifiers">runId: <span className="font-mono">{runId || '—'}</span>{resultId && <> · resultId: <span className="font-mono">{resultId}</span></>}{cacheHit && ' · cacheHit'}</p>
           <div className="text-[11px] text-muted-foreground tabular-nums flex flex-wrap gap-x-3 gap-y-1" aria-label="Retries breakdown">
             <span>Retries:</span>
