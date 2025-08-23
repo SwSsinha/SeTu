@@ -10,7 +10,7 @@ const SLEEP = (ms) => new Promise((r) => setTimeout(r, ms));
  * Input: { text: string, targetLang?: string, allowPartial?: boolean }
  * Output: { text: string, partial: boolean, chunks: number, failedChunk?: number }
  */
-async function translateText({ text, targetLang = 'hi', allowPartial = false }) {
+async function translateText({ text, targetLang = 'hi', allowPartial = false, metrics }) {
   if (!text || !text.trim()) {
     const err = new Error('Missing text to translate');
     err.status = 400;
@@ -20,6 +20,7 @@ async function translateText({ text, targetLang = 'hi', allowPartial = false }) 
   // Short texts: single call with small retry
   if (text.length <= MAX_CHARS) {
     let lastErr;
+    let retriesForThis = 0;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
         const resp = await axios.get('https://api.mymemory.translated.net/get', {
@@ -28,13 +29,18 @@ async function translateText({ text, targetLang = 'hi', allowPartial = false }) 
         });
         const translated = resp?.data?.responseData?.translatedText;
         if (!translated) throw new Error('Empty translation');
+        if (metrics) metrics.translationRetries = (metrics.translationRetries || 0) + retriesForThis;
         return { text: String(translated).trim(), partial: false, chunks: 1 };
       } catch (e) {
         lastErr = e;
-        if (attempt < MAX_RETRIES) await SLEEP(300 * (attempt + 1));
+        if (attempt < MAX_RETRIES) {
+          await SLEEP(300 * (attempt + 1));
+          retriesForThis += 1;
+        }
       }
     }
     if (allowPartial) {
+      if (metrics) metrics.translationRetries = (metrics.translationRetries || 0) + retriesForThis;
       return { text: '', partial: true, chunks: 0, failedChunk: 0, error: lastErr?.message };
     }
     const err = new Error('Translation failed');
@@ -62,6 +68,7 @@ async function translateText({ text, targetLang = 'hi', allowPartial = false }) 
   }
 
   const outputs = [];
+  let totalRetries = 0;
   for (const part of chunks) {
     let lastErr;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -76,9 +83,13 @@ async function translateText({ text, targetLang = 'hi', allowPartial = false }) 
         break;
       } catch (e) {
         lastErr = e;
-        if (attempt < MAX_RETRIES) await SLEEP(300 * (attempt + 1));
+        if (attempt < MAX_RETRIES) {
+          await SLEEP(300 * (attempt + 1));
+          totalRetries += 1;
+        }
         else {
           if (allowPartial) {
+            if (metrics) metrics.translationRetries = (metrics.translationRetries || 0) + totalRetries;
             return { text: outputs.join(' '), partial: true, chunks: chunks.length, failedChunk: outputs.length, error: lastErr?.message };
           } else {
             const err = new Error('Translation failed on a chunk');
@@ -90,6 +101,7 @@ async function translateText({ text, targetLang = 'hi', allowPartial = false }) 
       }
     }
   }
+  if (metrics) metrics.translationRetries = (metrics.translationRetries || 0) + totalRetries;
   return { text: outputs.join(' '), partial: false, chunks: chunks.length };
 }
 module.exports = { translateText };

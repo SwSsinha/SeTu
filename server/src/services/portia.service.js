@@ -42,7 +42,7 @@ function extractLongestString(root) {
  * Input: { url: string }
  * Output: string (article text)
  */
-async function scrapeArticle({ url }) {
+async function scrapeArticle({ url, metrics }) {
   if (!url) {
     const err = new Error('Missing url');
     err.status = 400;
@@ -78,6 +78,7 @@ async function scrapeArticle({ url }) {
 
   let lastErr;
   const attempted = [];
+  let portiaRetries = 0;
   for (const endpoint of endpoints) {
     attempted.push(endpoint);
     const headers = {
@@ -91,8 +92,8 @@ async function scrapeArticle({ url }) {
       headers['X-Portia-Org-Id'] = cfg.PORTIA_ORG_ID; // compatibility variant
     }
 
-    const maxRetries = 3;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const resp = await axios.post(endpoint, body, { headers, timeout: 60000 });
         // If we got here, request succeeded
@@ -102,6 +103,7 @@ async function scrapeArticle({ url }) {
           err.status = 422;
           throw err;
         }
+    if (metrics) metrics.portiaRetries = portiaRetries; // count of failed attempts before success
         return text.trim();
       } catch (err) {
         lastErr = err;
@@ -122,6 +124,7 @@ async function scrapeArticle({ url }) {
         if (isTransient(err) && attempt < maxRetries) {
           const backoff = 400 * attempt + Math.floor(Math.random() * 200);
           await delay(backoff);
+          portiaRetries += 1;
           continue;
         }
         // Non-retryable or retries exhausted: try next endpoint
@@ -148,6 +151,7 @@ async function scrapeArticle({ url }) {
     },
   };
   err.attempted = attempted;
+  if (metrics) metrics.portiaRetries = portiaRetries;
   throw err;
 
 }

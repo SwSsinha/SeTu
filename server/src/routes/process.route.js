@@ -28,12 +28,17 @@ router.post(
 				res.setHeader('Content-Disposition', `attachment; filename="setu_${lang}.mp3"`);
 				if (entry.id) res.setHeader('X-Result-Id', entry.id);
 				res.setHeader('X-Run-Id', runId);
+				const m = entry.meta?.metrics || {};
+				res.setHeader('X-Retries-Portia', String(m.portiaRetries || 0));
+				res.setHeader('X-Retries-Translation', String(m.translationRetries || 0));
+				res.setHeader('X-Retries-TTS', String(m.ttsRetries || 0));
 			return Readable.from(entry.audioBuffer).pipe(res);
 		}
 
-		const articleText = await scrapeArticle({ url });
+		const metrics = {};
+		const articleText = await scrapeArticle({ url, metrics });
 		const summaryText = summarize(articleText);
-		const translationResult = await translateText({ text: articleText, targetLang: lang, allowPartial: true });
+		const translationResult = await translateText({ text: articleText, targetLang: lang, allowPartial: true, metrics });
 		let ttsText = translationResult.text;
 		if (!ttsText || ttsText.trim().length < 5) {
 			// fallback: small slice of original article if translation empty
@@ -41,12 +46,12 @@ router.post(
 		}
 		let audioStream;
 		try {
-			audioStream = await synthesizeToMp3Stream({ text: ttsText, voiceId: voice });
+			audioStream = await synthesizeToMp3Stream({ text: ttsText, voiceId: voice, metrics });
 		} catch (e) {
 			if (!translationResult.partial) throw e; // full failure if translation wasn't partial
 			// If TTS fails after partial translation, fall back to smaller chunk
 			const fallback = ttsText.slice(0, 800);
-			audioStream = await synthesizeToMp3Stream({ text: fallback, voiceId: voice });
+			audioStream = await synthesizeToMp3Stream({ text: fallback, voiceId: voice, metrics });
 		}
 
 		// Buffer audio to cache & send
@@ -55,7 +60,7 @@ router.post(
 			{ url, lang, voice },
 			{
 				audioBuffer: buf,
-				meta: { url, lang, voice, textChars: ttsText.length, summary: summaryText, partial: translationResult.partial },
+				meta: { url, lang, voice, textChars: ttsText.length, summary: summaryText, partial: translationResult.partial, metrics },
 			}
 		);
 		res.setHeader('X-Cache-Hit', '0');
@@ -66,6 +71,9 @@ router.post(
 			res.setHeader('X-Summary-Preview', preview);
 		}
 		if (translationResult.partial) res.setHeader('X-Partial', '1');
+		res.setHeader('X-Retries-Portia', String(metrics.portiaRetries || 0));
+		res.setHeader('X-Retries-Translation', String(metrics.translationRetries || 0));
+		res.setHeader('X-Retries-TTS', String(metrics.ttsRetries || 0));
 		res.setHeader('Content-Type', 'audio/mpeg');
 		res.setHeader('Content-Disposition', `attachment; filename="setu_${lang}.mp3"`);
 		return Readable.from(buf).pipe(res);
@@ -90,6 +98,7 @@ router.post(
 		const runId = generateRunId();
 		const tracker = createPhaseTracker(runId);
 		const { url, lang, voice } = req.processInput;
+		const metrics = {};
 
 		// Cache check phase (virtual)
 		const cachePhase = tracker.start('cache');
@@ -97,6 +106,7 @@ router.post(
 		if (hit) {
 			tracker.succeed(cachePhase, { key, bytes: entry.audioBuffer.length, voice: entry.meta.voice });
 			const summary = tracker.summary();
+			const m = entry.meta?.metrics || {};
 			return res.json({
 				...summary,
 				status: 'success',
@@ -105,6 +115,11 @@ router.post(
 				url,
 				lang,
 				voice: entry.meta.voice || null,
+				retries: {
+					portia: m.portiaRetries || 0,
+					translation: m.translationRetries || 0,
+					tts: m.ttsRetries || 0,
+				},
 				audio: {
 					mime: 'audio/mpeg',
 					base64: entry.audioBuffer.toString('base64'),
@@ -119,8 +134,8 @@ router.post(
 		let scrapePhase = tracker.start('scrape');
 		let articleText;
 		try {
-			articleText = await scrapeArticle({ url });
-			tracker.succeed(scrapePhase, { length: articleText.length });
+			articleText = await scrapeArticle({ url, metrics });
+			tracker.succeed(scrapePhase, { length: articleText.length, retries: metrics.portiaRetries || 0 });
 		} catch (e) {
 			tracker.fail(scrapePhase, e);
 			return res.status(e.status || 500).json({ ...tracker.summary(), status: 'error' });
@@ -140,9 +155,9 @@ router.post(
 		let translated;
 		let translationResult;
 		try {
-			translationResult = await translateText({ text: articleText, targetLang: lang, allowPartial: true });
+			translationResult = await translateText({ text: articleText, targetLang: lang, allowPartial: true, metrics });
 			translated = translationResult.text;
-			tracker.succeed(translatePhase, { length: translated.length, partial: translationResult.partial });
+			tracker.succeed(translatePhase, { length: translated.length, partial: translationResult.partial, retries: metrics.translationRetries || 0 });
 		} catch (e) {
 			// If translation threw without partial data, hard fail
 			tracker.fail(translatePhase, e);
@@ -158,11 +173,11 @@ router.post(
 			}
 			let audioStream;
 			try {
-				audioStream = await synthesizeToMp3Stream({ text: ttsText, voiceId: voice });
+				audioStream = await synthesizeToMp3Stream({ text: ttsText, voiceId: voice, metrics });
 			} catch (e) {
 				if (!translationResult.partial) throw e;
 				const fallback = ttsText.slice(0, 800);
-				audioStream = await synthesizeToMp3Stream({ text: fallback, voiceId: voice });
+				audioStream = await synthesizeToMp3Stream({ text: fallback, voiceId: voice, metrics });
 			}
 			if (!(audioStream instanceof Readable)) {
 				const r = new Readable();
@@ -171,7 +186,7 @@ router.post(
 			} else {
 				audioBuffer = await streamToBuffer(audioStream);
 			}
-			tracker.succeed(ttsPhase, { bytes: audioBuffer.length, voice: voice || null, partial: translationResult.partial || false });
+			tracker.succeed(ttsPhase, { bytes: audioBuffer.length, voice: voice || null, partial: translationResult.partial || false, retries: metrics.ttsRetries || 0 });
 		} catch (e) {
 			tracker.fail(ttsPhase, e);
 			return res.status(e.status || 500).json({ ...tracker.summary(), status: 'error', partial: translationResult?.partial || false });
@@ -182,7 +197,7 @@ router.post(
 			{ url, lang, voice },
 			{
 				audioBuffer,
-				meta: { url, lang, voice, textChars: translated.length, summary: summaryText, partial: translationResult.partial },
+				meta: { url, lang, voice, textChars: translated.length, summary: summaryText, partial: translationResult.partial, metrics },
 			}
 		);
 
@@ -197,6 +212,11 @@ router.post(
 			voice: voice || null,
 			summary: summaryText,
 			partial: translationResult.partial || false,
+			retries: {
+				portia: metrics.portiaRetries || 0,
+				translation: metrics.translationRetries || 0,
+				tts: metrics.ttsRetries || 0,
+			},
 			audio: {
 				mime: 'audio/mpeg',
 				base64: audioBuffer.toString('base64'),

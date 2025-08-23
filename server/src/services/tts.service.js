@@ -9,7 +9,7 @@ const SLEEP = (ms) => new Promise((r) => setTimeout(r, ms));
  * Input: { text: string, voiceId?: string }
  * Output: Readable stream (audio/mpeg)
  */
-async function synthesizeToMp3Stream({ text, voiceId }) {
+async function synthesizeToMp3Stream({ text, voiceId, metrics }) {
   if (!text || !text.trim()) {
     const err = new Error('Missing text for TTS');
     err.status = 400;
@@ -26,6 +26,7 @@ async function synthesizeToMp3Stream({ text, voiceId }) {
   const finalVoiceId = voiceId || cfg.ELEVENLABS_VOICE_ID;
 
   let lastErr;
+  let retries = 0;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const resp = await axios.post(
@@ -44,16 +45,21 @@ async function synthesizeToMp3Stream({ text, voiceId }) {
           timeout: 120000,
         }
       );
+      if (metrics) metrics.ttsRetries = (metrics.ttsRetries || 0) + retries;
       return resp.data; // readable stream
     } catch (e) {
       lastErr = e;
-      if (attempt < MAX_RETRIES) await SLEEP(500 * (attempt + 1));
+      if (attempt < MAX_RETRIES) {
+        await SLEEP(500 * (attempt + 1));
+        retries += 1;
+      }
     }
   }
 
   const err = new Error('TTS failed');
   err.status = 502;
   err.detail = { lastErr: lastErr?.message };
+  if (metrics) metrics.ttsRetries = (metrics.ttsRetries || 0) + retries;
   throw err;
 }
 
