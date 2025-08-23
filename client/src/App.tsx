@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import axios from 'axios'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,6 +14,30 @@ export default function App() {
   const [status, setStatus] = useState<Status>('idle')
   const [audioSrc, setAudioSrc] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Step 2.3: API call handler (POST /api/process)
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    if (!url.trim()) return
+    setStatus('loading')
+    setError(null)
+    try {
+      const response = await axios.post('/api/process', {
+        url,
+        targetLang: lang,
+      })
+      // Placeholder success handling; detailed wiring (resultId, audio, timeline) comes in later steps
+      if (response.status === 200) {
+        setStatus('success')
+      } else {
+        setStatus('error')
+        setError('Unexpected response')
+      }
+    } catch (err: any) {
+      setStatus('error')
+      setError(err?.response?.data?.error || err.message || 'Request failed')
+    }
+  }
 
   return (
     <main className="min-h-screen w-full bg-ink-900 text-slate-100 flex flex-col items-center p-8 gap-8">
@@ -42,8 +67,8 @@ export default function App() {
               />
             </div>
             <div className="pt-2">
-              <Button className="w-full" disabled>
-                Process
+              <Button className="w-full" onClick={handleSubmit}>
+                {status === 'loading' ? 'Processing…' : 'Process'}
               </Button>
             </div>
           </form>
