@@ -12,14 +12,14 @@ export default function SingleProcessForm() {
     setUrl, setLang, setStatus, setAudioSrc, setError,
   } = useSingleProcessState();
 
-  const disabled = status === 'running';
+  const disabled = status === 'loading';
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!url || disabled) return;
     setError(null);
     setAudioSrc(null);
-    setStatus('running');
+  setStatus('loading');
     try {
       const { objectUrl } = await apiClient.postProcess({ url, lang });
       setAudioSrc(objectUrl);
@@ -61,7 +61,7 @@ export default function SingleProcessForm() {
           </div>
           <div>
             <Button type="submit" disabled={disabled || !url} aria-disabled={disabled || !url}>
-              {status === 'running' ? 'Processing...' : 'Process'}
+              {status === 'loading' ? 'Processing...' : 'Process'}
             </Button>
           </div>
           {error && (

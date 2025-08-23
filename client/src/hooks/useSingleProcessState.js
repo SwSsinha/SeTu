@@ -1,7 +1,7 @@
 // Hook: manages core single-process form state (Module 2 step 2.1)
 import { useState, useCallback } from 'react';
 
-export const INITIAL_STATUS = 'idle'; // idle | running | done | error
+export const INITIAL_STATUS = 'idle'; // idle | loading | done | error
 
 export function useSingleProcessState() {
   const [url, setUrl] = useState('');
