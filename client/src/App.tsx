@@ -86,6 +86,25 @@ export default function App() {
                 </div>
               </Alert>
             )}
+              {status === 'error' && (
+                <Alert variant="destructive" className="mt-4 flex flex-col gap-1">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error || 'Something went wrong.'}</AlertDescription>
+                  <div className="pt-1">
+                    <Button
+                      variant="outline"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setStatus('idle')
+                        setError(null)
+                      }}
+                      className="h-8 text-xs"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                </Alert>
+              )}
             </form>
           </Card>
         )}
