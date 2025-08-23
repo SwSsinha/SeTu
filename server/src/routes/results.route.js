@@ -37,6 +37,9 @@ router.get('/:id/audio', (req, res) => {
   const { entry } = found;
   res.setHeader('Content-Type', 'audio/mpeg');
   res.setHeader('Content-Disposition', `inline; filename="${id}.mp3"`);
+  // Since result id is derived from (url,lang,voice) hash and immutable for its content window,
+  // we can instruct aggressive caching for PWA/service worker layer.
+  res.setHeader('Cache-Control', 'public, max-age=3600, immutable');
   Readable.from(entry.audioBuffer).pipe(res);
 });
 
