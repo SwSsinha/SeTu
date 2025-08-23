@@ -56,6 +56,7 @@ async function postProcessTimeline({ url, lang }) {
 	return {
 		json,
 		runId: json?.runId || null,
+		cacheHit: !!json?.cacheHit,
 		phases: json?.phases || [],
 		summary: json?.summary || '',
 		partial: json?.partial || false,

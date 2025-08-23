@@ -14,6 +14,7 @@ export function useSingleProcessState() {
   const [resultId, setResultId] = useState(null);
   const [runId, setRunId] = useState(null);
   const [partial, setPartial] = useState(false);
+  const [cacheHit, setCacheHit] = useState(false);
   const [ttsProvider, setTtsProvider] = useState(null);
   const [totalMs, setTotalMs] = useState(0);
   const [error, setError] = useState(null);
@@ -32,6 +33,7 @@ export function useSingleProcessState() {
   setResultId(null);
   setRunId(null);
   setPartial(false);
+  setCacheHit(false);
   setTtsProvider(null);
   setTotalMs(0);
     setError(null);
@@ -39,9 +41,9 @@ export function useSingleProcessState() {
 
   return {
     // state
-  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, ttsProvider, totalMs, error,
+  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, error,
     // setters
-  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setTtsProvider, setTotalMs, setError,
+  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setError,
     // helpers
     reset,
   };
