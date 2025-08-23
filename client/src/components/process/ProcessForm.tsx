@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
 import type { Status } from '@/types'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Spinner } from '@/components/common/Spinner'
 
 interface Props {
   url: string
@@ -30,7 +31,7 @@ export function ProcessForm({ url, lang, status, setUrl, setLang, onSubmit, erro
         </div>
         <div className="pt-2">
           <Button className="w-full flex items-center justify-center gap-2" disabled={status==='loading'||!url.trim()} type="submit">
-            {status==='loading' && <span className="inline-block h-4 w-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" aria-hidden="true" />}
+            {status==='loading' && <Spinner size={16} />}
             {status==='loading' ? 'Processing…' : 'Process'}
           </Button>
         </div>
