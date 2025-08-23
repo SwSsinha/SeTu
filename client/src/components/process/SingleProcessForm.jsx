@@ -11,8 +11,8 @@ import { Badge } from '../ui/badge';
 // Static single process form (Step 1.3) – only structure, no logic yet.
 export default function SingleProcessForm() {
   const {
-  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, error,
-  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setError, reset,
+  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, error,
+  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setError, reset,
   } = useSingleProcessState();
 
   const disabled = status === 'loading';
@@ -32,7 +32,7 @@ export default function SingleProcessForm() {
   setStatus('loading');
     try {
       // Timeline endpoint – includes phases, summary, totalMs (Step 4.6 adds totalMs usage)
-  const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, runId: rrun, partial: part, cacheHit: cHit, totalMs: tot, json } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang });
+  const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, runId: rrun, partial: part, cacheHit: cHit, totalMs: tot, retries: rtries, headers: hdrs, json } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang });
   if (objectUrl) setAudioSrc(objectUrl);
   if (blob) setAudioBlob(blob);
   setPhases(ph);
@@ -43,6 +43,8 @@ export default function SingleProcessForm() {
   if (json?.ttsProvider) setTtsProvider(json.ttsProvider);
   if (rrun) setRunId(rrun);
   if (typeof cHit === 'boolean') setCacheHit(cHit);
+  if (rtries) setRetries(rtries);
+  if (hdrs) setHeaders(hdrs);
       setStatus('done');
     } catch (err) {
       setError(err.message || 'Failed');
@@ -125,7 +127,8 @@ export default function SingleProcessForm() {
       {status === 'done' && audioSrc && (
         <div className="mt-6 space-y-3" aria-label="Result audio section">
           <audio src={audioSrc} controls className="w-full" aria-label="Generated audio" />
-          <p className="text-[11px] text-muted-foreground tabular-nums" aria-label="Identifiers">runId: <span className="font-mono">{runId || '—'}</span>{resultId && <> · resultId: <span className="font-mono">{resultId}</span></>}</p>
+          <p className="text-[11px] text-muted-foreground tabular-nums" aria-label="Identifiers">runId: <span className="font-mono">{runId || '—'}</span>{resultId && <> · resultId: <span className="font-mono">{resultId}</span></>}{cacheHit && ' · cacheHit'}</p>
+          <p className="text-[11px] text-muted-foreground tabular-nums" aria-label="Retries">retries p/t/t: {retries.portia}/{retries.translation}/{retries.tts}</p>
           {/* Progress / duration representation */}
           {phases?.length > 0 && totalMs > 0 && (
             <div className="space-y-1" aria-label="Total processing duration">

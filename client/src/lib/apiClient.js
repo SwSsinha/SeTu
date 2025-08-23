@@ -40,6 +40,7 @@ async function postProcessTimeline({ url, lang }) {
 		}
 		throw new Error(msg);
 	}
+	const headerMap = Object.fromEntries(res.headers.entries());
 	const json = await res.json();
 	let blob = null; let objectUrl = null;
 	if (json?.audio?.base64) {
@@ -55,12 +56,18 @@ async function postProcessTimeline({ url, lang }) {
 	}
 	return {
 		json,
-		runId: json?.runId || null,
-		cacheHit: !!json?.cacheHit,
+		headers: headerMap,
+		runId: json?.runId || headerMap['x-run-id'] || null,
+		cacheHit: typeof json?.cacheHit === 'boolean' ? json.cacheHit : headerMap['x-cache-hit'] === '1',
+		retries: {
+			portia: parseInt(headerMap['x-retries-portia'] || '0', 10),
+			translation: parseInt(headerMap['x-retries-translation'] || '0', 10),
+			tts: parseInt(headerMap['x-retries-tts'] || '0', 10),
+		},
 		phases: json?.phases || [],
 		summary: json?.summary || '',
-		partial: json?.partial || false,
-		resultId: json?.resultId || null,
+		partial: json?.partial || (headerMap['x-partial'] === '1'),
+		resultId: json?.resultId || headerMap['x-result-id'] || null,
 		totalMs: json?.totalMs || 0,
 		blob,
 		objectUrl,
