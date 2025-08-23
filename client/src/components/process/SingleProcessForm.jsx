@@ -4,6 +4,7 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { useSingleProcessState } from '../../hooks/useSingleProcessState';
 import { apiClient } from '../../lib/apiClient';
+import { Spinner } from '../shared/Spinner';
 
 // Static single process form (Step 1.3) – only structure, no logic yet.
 export default function SingleProcessForm() {
@@ -68,7 +69,13 @@ export default function SingleProcessForm() {
           </div>
           <div>
             <Button type="submit" disabled={!canSubmit} aria-disabled={!canSubmit}>
-              {status === 'loading' ? 'Processing...' : 'Process'}
+              {status === 'loading' && (
+                <>
+                  <Spinner className="mr-2" size={16} />
+                  Processing…
+                </>
+              )}
+              {status !== 'loading' && 'Process'}
             </Button>
           </div>
         </fieldset>
