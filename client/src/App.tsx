@@ -25,11 +25,21 @@ export default function App() {
           <form className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="url">Article URL</Label>
-              <Input id="url" placeholder="https://example.com/article" />
+              <Input
+                id="url"
+                placeholder="https://example.com/article"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="lang">Target Language</Label>
-              <Input id="lang" placeholder="e.g. en, es, fr" />
+              <Input
+                id="lang"
+                placeholder="e.g. en, es, fr"
+                value={lang}
+                onChange={(e) => setLang(e.target.value)}
+              />
             </div>
             <div className="pt-2">
               <Button className="w-full" disabled>
