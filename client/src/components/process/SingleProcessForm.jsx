@@ -112,6 +112,14 @@ export default function SingleProcessForm() {
       {status === 'done' && audioSrc && (
         <div className="mt-6 space-y-3" aria-label="Result audio section">
           <audio src={audioSrc} controls className="w-full" aria-label="Generated audio" />
+          {summary && (
+            <div className="border rounded-md p-3 bg-muted/30" aria-label="Summary text">
+              <h2 className="text-sm font-medium mb-2">Summary</h2>
+              <p className="text-sm leading-snug whitespace-pre-line">
+                {summary}
+              </p>
+            </div>
+          )}
           {phases?.length > 0 && (
             <div className="border rounded-md p-3 bg-muted/30">
               <h2 className="text-sm font-medium mb-2">Phases</h2>
