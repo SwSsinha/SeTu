@@ -62,12 +62,27 @@ export default function SingleProcessForm() {
     apiClient.fetchVoices().then(list => {
       if (cancelled) return;
       setVoices(list);
+      // Load persisted voice preference
+      try {
+        const saved = localStorage.getItem('setu.voice');
+        if (saved && list.includes(saved)) {
+          setVoice(saved);
+          return;
+        }
+      } catch {}
       if (!voice && list.length > 0) setVoice(list[0]);
     }).catch(err => {
       if (!cancelled) console.warn('voices fetch failed', err);
     }).finally(() => { if (!cancelled) setVoicesLoading(false); });
     return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist voice selection
+  useEffect(() => {
+    if (voice) {
+      try { localStorage.setItem('setu.voice', voice); } catch {}
+    }
+  }, [voice]);
 
   return (
     <Card className="p-6 space-y-4" role="region" aria-labelledby="single-process-heading">
