@@ -20,10 +20,11 @@ router.post(
 
 		// Cache lookup
 		const { hit, key, entry } = getCached({ url, lang, voice });
-		if (hit) {
+			if (hit) {
 			res.setHeader('X-Cache-Hit', '1');
 			res.setHeader('Content-Type', 'audio/mpeg');
-			res.setHeader('Content-Disposition', `attachment; filename="setu_${lang}.mp3"`);
+				res.setHeader('Content-Disposition', `attachment; filename="setu_${lang}.mp3"`);
+				if (entry.id) res.setHeader('X-Result-Id', entry.id);
 			return Readable.from(entry.audioBuffer).pipe(res);
 		}
 
@@ -33,7 +34,7 @@ router.post(
 
 		// Buffer audio to cache & send
 		const buf = await streamToBuffer(audioStream);
-		setCached(
+		const { id } = setCached(
 			{ url, lang, voice },
 			{
 				audioBuffer: buf,
@@ -41,6 +42,7 @@ router.post(
 			}
 		);
 		res.setHeader('X-Cache-Hit', '0');
+		if (id) res.setHeader('X-Result-Id', id);
 		res.setHeader('Content-Type', 'audio/mpeg');
 		res.setHeader('Content-Disposition', `attachment; filename="setu_${lang}.mp3"`);
 		return Readable.from(buf).pipe(res);
@@ -70,20 +72,22 @@ router.post(
 		// Cache check phase (virtual)
 		const cachePhase = tracker.start('cache');
 		const { hit, key, entry } = getCached({ url, lang, voice });
-		if (hit) {
+			if (hit) {
 			tracker.succeed(cachePhase, { key, bytes: entry.audioBuffer.length });
 			const summary = tracker.summary();
 			return res.json({
 				...summary,
 				status: 'success',
 				cacheHit: true,
+					resultId: entry.id,
 				url,
 				lang,
 				audio: {
 					mime: 'audio/mpeg',
 					base64: entry.audioBuffer.toString('base64'),
 					dataUri: `data:audio/mpeg;base64,${entry.audioBuffer.toString('base64')}`,
-				},
+						url: `/api/result/${entry.id}/audio`,
+					},
 			});
 		} else {
 			tracker.succeed(cachePhase, { key, hit: false });
@@ -127,7 +131,7 @@ router.post(
 		}
 
 		// Store in cache
-		setCached(
+		const { id } = setCached(
 			{ url, lang, voice },
 			{
 				audioBuffer,
@@ -136,16 +140,18 @@ router.post(
 		);
 
 		const summary = tracker.summary();
-		res.json({
+			res.json({
 			...summary,
 			status: 'success',
 			cacheHit: false,
+				resultId: id,
 			url,
 			lang,
 			audio: {
 				mime: 'audio/mpeg',
 				base64: audioBuffer.toString('base64'),
 				dataUri: `data:audio/mpeg;base64,${audioBuffer.toString('base64')}`,
+					url: `/api/result/${id}/audio`,
 			},
 		});
 	})

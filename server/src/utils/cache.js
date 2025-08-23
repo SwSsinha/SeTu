@@ -4,7 +4,8 @@
 
 const crypto = require('crypto');
 
-const store = new Map(); // key -> { meta, audioBuffer, createdAt, lastAccess }
+const store = new Map(); // key -> { meta, audioBuffer, createdAt, lastAccess, ttl, id }
+const idToKey = new Map(); // shortId -> key
 
 const DEFAULT_TTL_MS = 1000 * 60 * 60; // 1 hour
 const MAX_ITEMS = 100; // prevent unbounded growth
@@ -12,6 +13,15 @@ const MAX_ITEMS = 100; // prevent unbounded growth
 function makeKey({ url, lang, voice }) {
   const raw = `${url}\n${lang || ''}\n${voice || ''}`;
   return crypto.createHash('sha256').update(raw).digest('hex');
+}
+
+function generateShortId() {
+  // 6-char base36 id; regenerate if collision
+  let id;
+  do {
+    id = Math.random().toString(36).slice(2, 8);
+  } while (idToKey.has(id));
+  return id;
 }
 
 function getCached(params) {
@@ -24,6 +34,11 @@ function getCached(params) {
     return { hit: false, key };
   }
   entry.lastAccess = Date.now();
+  // Ensure entry has an id for sharing
+  if (!entry.id) {
+    entry.id = generateShortId();
+    idToKey.set(entry.id, key);
+  }
   return { hit: true, key, entry };
 }
 
@@ -38,8 +53,27 @@ function setCached(params, data, { ttl = DEFAULT_TTL_MS } = {}) {
     }
     if (oldestKey) store.delete(oldestKey);
   }
-  store.set(key, { ...data, createdAt: Date.now(), lastAccess: Date.now(), ttl });
-  return key;
+  // preserve existing id if already cached (refresh) else generate
+  let existing = store.get(key);
+  let id = existing?.id || generateShortId();
+  store.set(key, { ...data, createdAt: Date.now(), lastAccess: Date.now(), ttl, id });
+  idToKey.set(id, key);
+  return { key, id };
+}
+
+function getById(id) {
+  const key = idToKey.get(id);
+  if (!key) return null;
+  const entry = store.get(key);
+  if (!entry) return null;
+  // TTL check
+  if (entry.ttl && Date.now() - entry.createdAt > entry.ttl) {
+    store.delete(key);
+    idToKey.delete(id);
+    return null;
+  }
+  entry.lastAccess = Date.now();
+  return { key, entry };
 }
 
 function stats() {
@@ -48,4 +82,4 @@ function stats() {
   };
 }
 
-module.exports = { getCached, setCached, stats, makeKey };
+module.exports = { getCached, setCached, stats, makeKey, getById };
