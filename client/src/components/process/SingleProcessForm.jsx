@@ -11,8 +11,8 @@ import { Badge } from '../ui/badge';
 // Static single process form (Step 1.3) – only structure, no logic yet.
 export default function SingleProcessForm() {
   const {
-    url, lang, status, audioSrc, audioBlob, phases, summary, resultId, partial, ttsProvider, error,
-    setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setPartial, setTtsProvider, setError, reset,
+    url, lang, status, audioSrc, audioBlob, phases, summary, resultId, partial, ttsProvider, totalMs, error,
+    setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setPartial, setTtsProvider, setTotalMs, setError, reset,
   } = useSingleProcessState();
 
   const disabled = status === 'loading';
@@ -31,14 +31,15 @@ export default function SingleProcessForm() {
     setAudioSrc(null);
   setStatus('loading');
     try {
-  // Switch to timeline endpoint (Step 4.1)
-  const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, partial: part, json } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang });
+      // Timeline endpoint – includes phases, summary, totalMs (Step 4.6 adds totalMs usage)
+      const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, partial: part, totalMs: tot, json } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang });
   if (objectUrl) setAudioSrc(objectUrl);
   if (blob) setAudioBlob(blob);
   setPhases(ph);
   setSummary(sum);
   setResultId(rid);
   setPartial(part);
+  setTotalMs(tot);
   if (json?.ttsProvider) setTtsProvider(json.ttsProvider);
       setStatus('done');
     } catch (err) {
@@ -111,9 +112,30 @@ export default function SingleProcessForm() {
           </Alert>
         </div>
       )}
+      {status === 'loading' && (
+        <div className="mt-4" aria-label="Processing progress">
+          <div className="h-2 w-full rounded bg-muted overflow-hidden relative">
+            <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1">Processing…</p>
+        </div>
+      )}
       {status === 'done' && audioSrc && (
         <div className="mt-6 space-y-3" aria-label="Result audio section">
           <audio src={audioSrc} controls className="w-full" aria-label="Generated audio" />
+          {/* Progress / duration representation */}
+          {phases?.length > 0 && totalMs > 0 && (
+            <div className="space-y-1" aria-label="Total processing duration">
+              <div className="h-2 w-full rounded bg-muted overflow-hidden flex">
+                {phases.filter(p=>typeof p.ms==='number').map((p) => {
+                  const pct = Math.max(2, Math.round((p.ms / totalMs) * 100));
+                  const color = p.name === 'scrape' ? 'bg-blue-500' : p.name === 'summary' ? 'bg-indigo-500' : p.name === 'translate' ? 'bg-amber-500' : p.name === 'tts' ? 'bg-emerald-500' : 'bg-primary';
+                  return <div key={p.name} className={`${color} h-full`} style={{ width: pct + '%' }} title={`${p.name} ${p.ms}ms`} />;
+                })}
+              </div>
+              <p className="text-[11px] text-muted-foreground tabular-nums">Total {totalMs}ms</p>
+            </div>
+          )}
       {summary && (
             <div className="border rounded-md p-3 bg-muted/30 space-y-2" aria-label="Summary text">
               <div className="flex items-center gap-2">
