@@ -13,15 +13,22 @@ export default function SingleProcessForm() {
   } = useSingleProcessState();
 
   const disabled = status === 'loading';
+  const urlTrimmed = url.trim();
+  const canSubmit = !disabled && urlTrimmed.length > 0;
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!url || disabled) return;
+    if (disabled) return;
+    if (!urlTrimmed) {
+      setError('URL is required');
+      setStatus('error');
+      return;
+    }
     setError(null);
     setAudioSrc(null);
   setStatus('loading');
     try {
-      const { objectUrl } = await apiClient.postProcess({ url, lang });
+      const { objectUrl } = await apiClient.postProcess({ url: urlTrimmed, lang });
       setAudioSrc(objectUrl);
       setStatus('done');
     } catch (err) {
@@ -60,7 +67,7 @@ export default function SingleProcessForm() {
             </select>
           </div>
           <div>
-            <Button type="submit" disabled={disabled || !url} aria-disabled={disabled || !url}>
+            <Button type="submit" disabled={!canSubmit} aria-disabled={!canSubmit}>
               {status === 'loading' ? 'Processing...' : 'Process'}
             </Button>
           </div>
