@@ -10,7 +10,7 @@ import { Timeline } from '@/components/process/Timeline'
 // Types moved to central types module
 
 export default function App() {
-  const { url, setUrl, lang, setLang, status, error, resultId, audioSrc, submit, reset } = useProcess('hi')
+  const { url, setUrl, lang, setLang, status, error, resultId, audioSrc, result, submit, reset } = useProcess('hi')
 
   return (
     <AppShell>
@@ -31,7 +31,7 @@ export default function App() {
           <Timeline {...useTimeline(resultId)} />
         )}
         {status === 'success' && (
-          <SuccessCard audioSrc={audioSrc} resultId={resultId} onReset={() => { reset(); setUrl('') }} />
+          <SuccessCard audioSrc={audioSrc} resultId={resultId} summary={result?.summary} onReset={() => { reset(); setUrl('') }} />
         )}
     <HistorySection status={status} currentUrl={url} currentLang={lang} resultId={resultId} audioUrl={audioSrc} onReuse={(item) => { setUrl(item.url); setLang(item.targetLang); reset() }} />
       </section>

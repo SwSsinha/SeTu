@@ -1,7 +1,7 @@
 // Manages submission + high level status (stub)
 import { useState } from 'react'
 import type { Status, ProcessResult } from '@/types'
-import { processArticle } from '@/services/api'
+import { processArticle, fetchResultMeta } from '@/services/api'
 
 export function useProcess(initialLang = 'hi') {
   const [url, setUrl] = useState('')
@@ -17,9 +17,15 @@ export function useProcess(initialLang = 'hi') {
     setStatus('loading'); setError(null)
     try {
       const r = await processArticle({ url, targetLang: lang })
-      setResult(r)
-      setResultId(r.resultId)
-      setAudioSrc(r.audioUrl || (r.resultId ? `/api/results/${r.resultId}/audio` : null))
+      setResultId(r.resultId || null)
+      setAudioSrc(r.audioUrl || (r.resultId ? `/api/result/${r.resultId}/audio` : null))
+      // If only preview summary, attempt full summary fetch
+      if (r.resultId) {
+        const meta = await fetchResultMeta(r.resultId)
+        setResult({ ...r, ...meta })
+      } else {
+        setResult(r)
+      }
       setStatus('success')
     } catch (e: any) {
       setError(e?.response?.data?.error || e.message || 'Request failed')
