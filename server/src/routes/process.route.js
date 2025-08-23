@@ -15,8 +15,7 @@ router.post(
 	'/',
 	validateProcess,
 	asyncHandler(async (req, res) => {
-		const { url, lang } = req.processInput;
-		const voice = undefined; // placeholder for future voice selection
+		const { url, lang, voice } = req.processInput;
 
 		// Cache lookup
 		const { hit, key, entry } = getCached({ url, lang, voice });
@@ -30,7 +29,7 @@ router.post(
 
 		const articleText = await scrapeArticle({ url });
 		const translated = await translateText({ text: articleText, targetLang: lang });
-		const audioStream = await synthesizeToMp3Stream({ text: translated });
+		const audioStream = await synthesizeToMp3Stream({ text: translated, voiceId: voice });
 
 		// Buffer audio to cache & send
 		const buf = await streamToBuffer(audioStream);
@@ -66,31 +65,31 @@ router.post(
 	asyncHandler(async (req, res) => {
 		const runId = generateRunId();
 		const tracker = createPhaseTracker(runId);
-		const { url, lang } = req.processInput;
-		const voice = undefined;
+		const { url, lang, voice } = req.processInput;
 
 		// Cache check phase (virtual)
 		const cachePhase = tracker.start('cache');
 		const { hit, key, entry } = getCached({ url, lang, voice });
-			if (hit) {
-			tracker.succeed(cachePhase, { key, bytes: entry.audioBuffer.length });
+		if (hit) {
+			tracker.succeed(cachePhase, { key, bytes: entry.audioBuffer.length, voice: entry.meta.voice });
 			const summary = tracker.summary();
 			return res.json({
 				...summary,
 				status: 'success',
 				cacheHit: true,
-					resultId: entry.id,
+				resultId: entry.id,
 				url,
 				lang,
+				voice: entry.meta.voice || null,
 				audio: {
 					mime: 'audio/mpeg',
 					base64: entry.audioBuffer.toString('base64'),
 					dataUri: `data:audio/mpeg;base64,${entry.audioBuffer.toString('base64')}`,
-						url: `/api/result/${entry.id}/audio`,
-					},
+					url: `/api/result/${entry.id}/audio`,
+				},
 			});
 		} else {
-			tracker.succeed(cachePhase, { key, hit: false });
+			tracker.succeed(cachePhase, { key, hit: false, voice: voice || null });
 		}
 
 		let scrapePhase = tracker.start('scrape');
@@ -116,7 +115,7 @@ router.post(
 		let ttsPhase = tracker.start('tts');
 		let audioBuffer;
 		try {
-			const audioStream = await synthesizeToMp3Stream({ text: translated });
+			const audioStream = await synthesizeToMp3Stream({ text: translated, voiceId: voice });
 			if (!(audioStream instanceof Readable)) {
 				const r = new Readable();
 				r.push(audioStream); r.push(null);
@@ -124,7 +123,7 @@ router.post(
 			} else {
 				audioBuffer = await streamToBuffer(audioStream);
 			}
-			tracker.succeed(ttsPhase, { bytes: audioBuffer.length });
+			tracker.succeed(ttsPhase, { bytes: audioBuffer.length, voice: voice || null });
 		} catch (e) {
 			tracker.fail(ttsPhase, e);
 			return res.status(e.status || 500).json({ ...tracker.summary(), status: 'error' });
@@ -144,14 +143,15 @@ router.post(
 			...summary,
 			status: 'success',
 			cacheHit: false,
-				resultId: id,
+			resultId: id,
 			url,
 			lang,
+			voice: voice || null,
 			audio: {
 				mime: 'audio/mpeg',
 				base64: audioBuffer.toString('base64'),
 				dataUri: `data:audio/mpeg;base64,${audioBuffer.toString('base64')}`,
-					url: `/api/result/${id}/audio`,
+				url: `/api/result/${id}/audio`,
 			},
 		});
 	})
