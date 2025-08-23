@@ -361,6 +361,6 @@ export default function App() {
         </div>
       </section>
       <footer className="mt-auto pb-4 text-xs text-slate-600">Backend ready • Frontend shell in progress</footer>
-    </main>
+    </main> 
   )
 }
