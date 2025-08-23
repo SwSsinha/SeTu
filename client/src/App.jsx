@@ -1,9 +1,17 @@
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
 
 export default function App() {
+	// Step 2.1: local state hooks (no logic wired yet)
+	const [url, setUrl] = useState('')
+	const [lang, setLang] = useState('hi')
+	const [status, setStatus] = useState('idle') // idle | loading | success | error
+	const [audioSrc, setAudioSrc] = useState(null)
+	const [error, setError] = useState(null)
+
 	return (
 		<main className="min-h-screen w-full bg-ink-900 text-slate-100 flex flex-col items-center p-8 gap-8">
 			<header className="w-full max-w-5xl flex items-center justify-between">
