@@ -12,8 +12,8 @@ import { useEffect, useState } from 'react';
 // Static single process form (Step 1.3) – only structure, no logic yet.
 export default function SingleProcessForm() {
   const {
-  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, voices, voicesLoading, voice, inFlightKey, error,
-  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setVoices, setVoicesLoading, setVoice, setInFlightKey, setError, reset,
+  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, voices, voicesLoading, voice, inFlightKey, historyMap, error,
+  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setVoices, setVoicesLoading, setVoice, setInFlightKey, setHistoryMap, setError, reset,
   } = useSingleProcessState();
 
   const disabled = status === 'loading';
@@ -70,12 +70,39 @@ export default function SingleProcessForm() {
   if (typeof tChars === 'number') setTranslationChars(tChars);
   if (typeof sChars === 'number') setSummaryChars(sChars);
       setStatus('done');
+      // Record history entry
+      try {
+        const now = Date.now();
+        const next = { ...historyMap, [key]: { ts: now } };
+        setHistoryMap(next);
+        localStorage.setItem('setu.history', JSON.stringify(next));
+      } catch {}
     } catch (err) {
       setError(err.message || 'Failed');
       setStatus('error');
     } finally {
       setInFlightKey(null);
     }
+  }
+
+  // Load persisted history once
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('setu.history');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') setHistoryMap(parsed);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Compute age for current key
+  const effectiveLang = isCustomLang ? customLangTrimmed : lang;
+  const currentKey = `${urlTrimmed}|${effectiveLang}|${voice}`;
+  let lastAgeMs = null;
+  if (historyMap[currentKey]) {
+    lastAgeMs = Date.now() - historyMap[currentKey].ts;
   }
 
   // Fetch voices on mount (Step 6.1)
@@ -162,6 +189,9 @@ export default function SingleProcessForm() {
             />
             {showUrlError && (
               <p className="text-[11px] mt-1 text-destructive" role="alert">Enter a valid http(s) URL.</p>
+            )}
+            {lastAgeMs !== null && !showUrlError && (
+              <p className="text-[11px] text-muted-foreground">Last processed {(lastAgeMs/1000).toFixed(1)}s ago</p>
             )}
           </div>
           <div className="space-y-2">

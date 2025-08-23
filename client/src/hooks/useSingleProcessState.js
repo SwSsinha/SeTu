@@ -25,6 +25,7 @@ export function useSingleProcessState() {
   const [voicesLoading, setVoicesLoading] = useState(false);
   const [voice, setVoice] = useState('');
   const [inFlightKey, setInFlightKey] = useState(null);
+  const [historyMap, setHistoryMap] = useState({}); // key -> { ts }
   const [error, setError] = useState(null);
 
   const reset = useCallback(() => {
@@ -52,14 +53,15 @@ export function useSingleProcessState() {
   setVoicesLoading(false);
   setVoice('');
   setInFlightKey(null);
+  setHistoryMap({});
     setError(null);
   }, [audioSrc]);
 
   return {
     // state
-  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, voices, voicesLoading, voice, inFlightKey, error,
+  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, voices, voicesLoading, voice, inFlightKey, historyMap, error,
     // setters
-  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setVoices, setVoicesLoading, setVoice, setInFlightKey, setError,
+  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setVoices, setVoicesLoading, setVoice, setInFlightKey, setHistoryMap, setError,
     // helpers
     reset,
   };
