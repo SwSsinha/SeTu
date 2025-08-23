@@ -2,6 +2,7 @@ const { Router } = require('express');
 const processRouter = require('./process.route');
 const resultsRouter = require('./results.route');
 const historyRouter = require('./history.route');
+const processMultiRouter = require('./processMulti.route');
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.get('/', (req, res) => {
 router.use('/api/process', processRouter);
 router.use('/api/result', resultsRouter);
 router.use('/api/history', historyRouter);
+router.use('/api/process-multi', processMultiRouter);
 
 module.exports = router;
