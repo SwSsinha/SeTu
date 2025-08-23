@@ -57,6 +57,25 @@ export default function App() {
       // Placeholder success handling; detailed wiring (resultId, audio, timeline) comes in later steps
       if (response.status === 200) {
         setStatus('success')
+        // Step 5.2: Persist success to history (local-only for now)
+        const newItem: HistoryItem = {
+          id: Date.now().toString(),
+            // Keep original URL & lang
+          url,
+          targetLang: lang,
+          createdAt: new Date().toISOString(),
+          status: 'success',
+          audioUrl: null as any, // placeholder until audio wiring
+        }
+        setHistory((prev) => {
+          const next = [...prev, newItem]
+          try {
+            localStorage.setItem('setu_history', JSON.stringify(next))
+          } catch (e) {
+            console.warn('Failed saving history to localStorage', e)
+          }
+          return next
+        })
       } else {
         setStatus('error')
         setError('Unexpected response')
