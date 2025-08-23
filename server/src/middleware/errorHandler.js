@@ -4,6 +4,7 @@ module.exports = (err, req, res, next) => {
 	const payload = {
 		error: err.name || 'Error',
 		message: err.message || 'Internal Server Error',
+		runId: req.lastRunId || undefined,
 	};
 	if (process.env.NODE_ENV !== 'production') {
 		payload.stack = err.stack;

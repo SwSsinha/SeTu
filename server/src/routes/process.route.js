@@ -16,7 +16,9 @@ router.post(
 	'/',
 	validateProcess,
 	asyncHandler(async (req, res) => {
-		const { url, lang, voice } = req.processInput;
+			const { url, lang, voice } = req.processInput;
+			const runId = generateRunId();
+			req.lastRunId = runId;
 
 		// Cache lookup
 		const { hit, key, entry } = getCached({ url, lang, voice });
@@ -25,6 +27,7 @@ router.post(
 			res.setHeader('Content-Type', 'audio/mpeg');
 				res.setHeader('Content-Disposition', `attachment; filename="setu_${lang}.mp3"`);
 				if (entry.id) res.setHeader('X-Result-Id', entry.id);
+				res.setHeader('X-Run-Id', runId);
 			return Readable.from(entry.audioBuffer).pipe(res);
 		}
 
@@ -44,6 +47,7 @@ router.post(
 		);
 		res.setHeader('X-Cache-Hit', '0');
 		if (id) res.setHeader('X-Result-Id', id);
+		res.setHeader('X-Run-Id', runId);
 		if (summaryText) {
 			const preview = encodeURIComponent(summaryText.slice(0, 120));
 			res.setHeader('X-Summary-Preview', preview);
