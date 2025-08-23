@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { useSingleProcessState } from '../../hooks/useSingleProcessState';
 import { apiClient } from '../../lib/apiClient';
 import { Spinner } from '../shared/Spinner';
+import { Alert } from '../ui/alert';
 
 // Static single process form (Step 1.3) – only structure, no logic yet.
 export default function SingleProcessForm() {
@@ -81,8 +82,18 @@ export default function SingleProcessForm() {
         </fieldset>
       </form>
       {error && (
-        <div className="mt-4" role="alert">
-          <p className="text-sm text-destructive">{String(error)}</p>
+        <div className="mt-4">
+          <Alert
+            variant="destructive"
+            title="Submission failed"
+            actions={[{
+              label: 'Retry',
+              variant: 'secondary',
+              onClick: () => { setStatus('idle'); setError(null); }
+            }]}
+          >
+            {String(error)}
+          </Alert>
         </div>
       )}
       {status === 'done' && audioSrc && (
