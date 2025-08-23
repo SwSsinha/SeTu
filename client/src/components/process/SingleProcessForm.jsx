@@ -135,6 +135,15 @@ export default function SingleProcessForm() {
             <span title="Portia scrape retries" className={retries.portia ? 'text-amber-600 dark:text-amber-400 font-medium' : ''}>Portia <span className="font-mono">{retries.portia}</span></span>
             <span title="Translation retries" className={retries.translation ? 'text-amber-600 dark:text-amber-400 font-medium' : ''}>Translation <span className="font-mono">{retries.translation}</span></span>
             <span title="TTS retries" className={retries.tts ? 'text-amber-600 dark:text-amber-400 font-medium' : ''}>TTS <span className="font-mono">{retries.tts}</span></span>
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Show raw response headers JSON"
+              className="cursor-help underline decoration-dotted"
+              title={(() => {
+                try { return JSON.stringify(headers, null, 2); } catch { return 'headers unavailable'; }
+              })()}
+            >headers</span>
           </div>
           <p className="text-[11px] text-muted-foreground tabular-nums" aria-label="Total processing time">time: <span className="font-mono">{totalMs}ms</span> (<span className="font-mono">{(totalMs/1000).toFixed(2)}s</span>)</p>
           <p className="text-[11px] text-muted-foreground tabular-nums" aria-label="Character counts">chars: translation <span className="font-mono">{translationChars}</span>{summaryChars ? <> · summary <span className="font-mono">{summaryChars}</span></> : null}</p>
