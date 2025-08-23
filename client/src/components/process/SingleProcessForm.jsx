@@ -87,11 +87,18 @@ export default function SingleProcessForm() {
           <Alert
             variant="destructive"
             title="Submission failed"
-            actions={[{
-              label: 'Retry',
-              variant: 'secondary',
-              onClick: () => { setStatus('idle'); setError(null); }
-            }]}
+            actions={[
+              {
+                label: 'Retry',
+                variant: 'secondary',
+                onClick: () => { setStatus('idle'); setError(null); }
+              },
+              {
+                label: 'Try Again',
+                variant: 'outline',
+                onClick: () => { reset(); }
+              }
+            ]}
           >
             {String(error)}
           </Alert>
