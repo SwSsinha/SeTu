@@ -107,9 +107,36 @@ export default function App() {
               )}
               {/* Step 4.1: Example buttons (static, no logic yet) */}
               <div className="pt-4 flex flex-wrap gap-2 text-xs">
-                <Button variant="outline" className="h-8">Example: Tech Blog</Button>
-                <Button variant="outline" className="h-8">Example: News Article</Button>
-                <Button variant="outline" className="h-8">Example: Research Post</Button>
+                <Button
+                  variant="outline"
+                  className="h-8"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setUrl('https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules')
+                  }}
+                >
+                  Example: Tech Blog
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setUrl('https://en.wikipedia.org/wiki/Artificial_intelligence')
+                  }}
+                >
+                  Example: News Article
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setUrl('https://arxiv.org/abs/1706.03762')
+                  }}
+                >
+                  Example: Research Post
+                </Button>
               </div>
             </form>
           </Card>
