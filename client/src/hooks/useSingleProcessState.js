@@ -9,6 +9,10 @@ export function useSingleProcessState() {
   const [status, setStatus] = useState(INITIAL_STATUS);
   const [audioSrc, setAudioSrc] = useState(null); // object URL or remote URL
   const [audioBlob, setAudioBlob] = useState(null);
+  const [phases, setPhases] = useState([]); // timeline phases from /timeline endpoint
+  const [summary, setSummary] = useState('');
+  const [resultId, setResultId] = useState(null);
+  const [partial, setPartial] = useState(false);
   const [error, setError] = useState(null);
 
   const reset = useCallback(() => {
@@ -20,14 +24,18 @@ export function useSingleProcessState() {
     setStatus(INITIAL_STATUS);
     setAudioSrc(null);
     setAudioBlob(null);
+  setPhases([]);
+  setSummary('');
+  setResultId(null);
+  setPartial(false);
     setError(null);
   }, [audioSrc]);
 
   return {
     // state
-  url, lang, status, audioSrc, audioBlob, error,
+  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, partial, error,
     // setters
-  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setError,
+  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setPartial, setError,
     // helpers
     reset,
   };

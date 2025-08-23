@@ -10,8 +10,8 @@ import { Alert } from '../ui/alert';
 // Static single process form (Step 1.3) – only structure, no logic yet.
 export default function SingleProcessForm() {
   const {
-    url, lang, status, audioSrc, audioBlob, error,
-    setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setError, reset,
+    url, lang, status, audioSrc, audioBlob, phases, summary, resultId, partial, error,
+    setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setPartial, setError, reset,
   } = useSingleProcessState();
 
   const disabled = status === 'loading';
@@ -30,9 +30,14 @@ export default function SingleProcessForm() {
     setAudioSrc(null);
   setStatus('loading');
     try {
-  const { objectUrl, blob } = await apiClient.postProcess({ url: urlTrimmed, lang });
-  setAudioSrc(objectUrl);
-  setAudioBlob(blob);
+  // Switch to timeline endpoint (Step 4.1)
+  const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, partial: part } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang });
+  if (objectUrl) setAudioSrc(objectUrl);
+  if (blob) setAudioBlob(blob);
+  setPhases(ph);
+  setSummary(sum);
+  setResultId(rid);
+  setPartial(part);
       setStatus('done');
     } catch (err) {
       setError(err.message || 'Failed');
