@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,6 +8,16 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 
 type Status = 'idle' | 'loading' | 'success' | 'error'
 
+// Step 5.1: Basic History item shape (can evolve in later steps)
+interface HistoryItem {
+  id: string
+  url: string
+  targetLang: string
+  createdAt: string
+  status: Status
+  audioUrl?: string
+}
+
 export default function App() {
   // Core state hooks
   const [url, setUrl] = useState<string>('')
@@ -15,6 +25,23 @@ export default function App() {
   const [status, setStatus] = useState<Status>('idle')
   const [audioSrc, setAudioSrc] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Step 5.1: History state (hydrated from localStorage on mount)
+  const [history, setHistory] = useState<HistoryItem[]>([])
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('setu_history')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) {
+          setHistory(parsed as HistoryItem[])
+        }
+      }
+    } catch (e) {
+      // Silent fail; we'll rebuild history progressively.
+      console.warn('Failed to load history from localStorage', e)
+    }
+  }, [])
 
   // Step 2.3: API call handler (POST /api/process)
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
