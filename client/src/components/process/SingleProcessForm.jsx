@@ -39,6 +39,14 @@ export default function SingleProcessForm({ externalState }) {
   const customLangTrimmed = customLang.trim();
   const customLangValid = !isCustomLang || (/^[a-z-]{2,5}$/.test(customLangTrimmed) && customLangTrimmed.length>0);
   const canSubmit = !disabled && urlTrimmed.length > 0 && customLangValid;
+  // Inline action confirmation notice (Download / Copy, etc.)
+  const [notice, setNotice] = useState(null);
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 2500);
+    return () => clearTimeout(t);
+  }, [notice]);
+  function flash(msg) { setNotice(msg); }
 
   function isValidHttpUrl(str) {
     try { const u = new URL(str); return u.protocol === 'http:' || u.protocol === 'https:'; } catch { return false; }
@@ -537,6 +545,11 @@ export default function SingleProcessForm({ externalState }) {
             </div>
           )}
           <div className="flex flex-wrap gap-2">
+            {notice && (
+              <div className="w-full" aria-live="polite" aria-atomic="true">
+                <Alert title={notice} />
+              </div>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -549,6 +562,7 @@ export default function SingleProcessForm({ externalState }) {
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
+                flash('Downloaded!');
               }}
             >
               Download
@@ -570,6 +584,7 @@ export default function SingleProcessForm({ externalState }) {
                   document.execCommand('copy');
                   tmp.remove();
                 }
+                flash('Link copied!');
               }}
               aria-label="Copy audio link to clipboard"
             >
@@ -603,6 +618,7 @@ export default function SingleProcessForm({ externalState }) {
                   const tmp = document.createElement('textarea');
                   tmp.value = text; document.body.appendChild(tmp); tmp.select(); document.execCommand('copy'); tmp.remove();
                 }
+                flash('Debug JSON copied!');
               }}
               aria-label="Copy debug JSON"
             >
