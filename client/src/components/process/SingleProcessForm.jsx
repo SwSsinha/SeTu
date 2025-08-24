@@ -354,7 +354,20 @@ export default function SingleProcessForm({ externalState }) {
       )}
   {status === 'done' && audioSrc && (
         <div className="mt-6 space-y-3" aria-label="Result audio section">
-          <audio src={audioSrc} controls className="w-full" aria-label="Generated audio" />
+          <div className="flex items-center gap-2">
+            <audio src={audioSrc} controls className="w-full" aria-label="Generated audio" />
+            {resultId && (
+              <a
+                href={`/api/result/${resultId}/audio`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs underline text-muted-foreground hover:text-primary whitespace-nowrap"
+                aria-label="Open audio in new tab"
+              >
+                Open
+              </a>
+            )}
+          </div>
           {cacheHit && (
             <div>
               <Badge variant="outline" aria-label="Served from cache">Served from cache</Badge>
