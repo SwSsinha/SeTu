@@ -77,6 +77,25 @@ export default function SingleProcessForm({ externalState }) {
         const next = { ...historyMap, [key]: { ts: now } };
         setHistoryMap(next);
         localStorage.setItem('setu.history', JSON.stringify(next));
+        // Extended local history entries for server merge (step 8.2)
+        const entry = {
+          runId: rrun || null,
+          resultId: rid || null,
+          url: urlTrimmed,
+          lang: effectiveLang,
+          voice: voice || null,
+          partial: !!part,
+          cacheHit: !!cHit,
+          durationMs: tot || 0,
+          ts: now,
+          source: 'local'
+        };
+        let localArr = [];
+        try { localArr = JSON.parse(localStorage.getItem('setu.historyEntries') || '[]'); if (!Array.isArray(localArr)) localArr = []; } catch { localArr = []; }
+        localArr.unshift(entry);
+        // cap to 100
+        if (localArr.length > 100) localArr.length = 100;
+        localStorage.setItem('setu.historyEntries', JSON.stringify(localArr));
       } catch {}
     } catch (err) {
       setError(err.message || 'Failed');

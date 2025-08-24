@@ -11,8 +11,23 @@ export function HistoryList({ history, setHistory, onSelect }) {
     async function load() {
       setLoading(true); setError(null);
       try {
-        const entries = await apiClient.fetchHistory({ limit: 30, debug: true });
-        if (!cancelled) setHistory(entries);
+        const serverEntries = await apiClient.fetchHistory({ limit: 50, debug: true });
+        let localEntries = [];
+        try { const raw = localStorage.getItem('setu.historyEntries'); if (raw) localEntries = JSON.parse(raw); } catch {}
+        if (!Array.isArray(localEntries)) localEntries = [];
+        // Deduplicate: prefer server entry, key by runId || resultId || url+lang+voice+ts
+        const map = new Map();
+        const add = (e, source) => {
+          const k = e.runId || e.resultId || `${e.url}|${e.lang}|${e.voice||''}`;
+            if (map.has(k)) return;
+          map.set(k, { ...e, source });
+        };
+        serverEntries.forEach(e => add(e, 'server'));
+        localEntries.forEach(e => add(e, 'local'));
+        const merged = Array.from(map.values())
+          .sort((a,b) => (b.ts || 0) - (a.ts || 0))
+          .slice(0, 100);
+        if (!cancelled) setHistory(merged);
       } catch (e) {
         if (!cancelled) setError(e.message || 'Failed to load history');
       } finally { if (!cancelled) setLoading(false); }
