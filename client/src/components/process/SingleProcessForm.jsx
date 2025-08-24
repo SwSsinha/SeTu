@@ -7,7 +7,7 @@ import { apiClient } from '../../lib/apiClient';
 import { Spinner } from '../shared/Spinner';
 import { Alert } from '../ui/alert';
 import { Badge } from '../ui/badge';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 // Static single process form (Step 1.3) – only structure, no logic yet.
 export default function SingleProcessForm({ externalState }) {
@@ -18,6 +18,10 @@ export default function SingleProcessForm({ externalState }) {
   } = state;
 
   const disabled = status === 'loading';
+  // Step 13.4: AbortController for in-flight request
+  const abortRef = useRef(null);
+  // Keep last submission payload for retry (13.3)
+  const lastRequestRef = useRef(null);
   const urlTrimmed = url.trim();
 
   const presetLangs = ['hi','en','es'];
@@ -60,13 +64,17 @@ export default function SingleProcessForm({ externalState }) {
       return; // duplicate in-flight
     }
     setInFlightKey(key);
+    lastRequestRef.current = { url: urlTrimmed, effectiveLang, voice };
+    // Abort any prior
+    if (abortRef.current) { try { abortRef.current.abort(); } catch {} }
+    const controller = new AbortController();
+    abortRef.current = controller;
     setError(null);
     setAudioSrc(null);
   setStatus('loading');
     try {
       // Timeline endpoint – includes phases, summary, totalMs (Step 4.6 adds totalMs usage)
-  const effectiveLang = isCustomLang ? customLangTrimmed : lang;
-  const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, runId: rrun, partial: part, cacheHit: cHit, totalMs: tot, retries: rtries, headers: hdrs, translationChars: tChars, summaryChars: sChars, json } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang: effectiveLang, voice });
+  const { objectUrl, blob, phases: ph, summary: sum, resultId: rid, runId: rrun, partial: part, cacheHit: cHit, totalMs: tot, retries: rtries, headers: hdrs, translationChars: tChars, summaryChars: sChars, json } = await apiClient.postProcessTimeline({ url: urlTrimmed, lang: effectiveLang, voice, signal: controller.signal });
   if (objectUrl) setAudioSrc(objectUrl);
   if (blob) setAudioBlob(blob);
   setPhases(ph);
@@ -122,10 +130,51 @@ export default function SingleProcessForm({ externalState }) {
         localStorage.setItem('setu.historyEntries', JSON.stringify(localArr));
       } catch {}
     } catch (err) {
-      setError(err.message || 'Failed');
-      setStatus('error');
+      if (err.name === 'AbortError') {
+        setStatus('idle');
+        setError('Cancelled'); // Step 13.5
+      } else {
+        // Step 13.1/13.2 classification & guidance
+        let guidance = '';
+        const statusCode = err.status;
+        if (statusCode) {
+          if (statusCode >= 400 && statusCode < 500) {
+            guidance = 'Client/validation issue. Check URL and language.';
+          } else if (statusCode >= 500) {
+            guidance = 'Upstream/server issue. You can retry shortly.';
+          }
+          if (err.phase === 'translate') {
+            guidance = 'Translation failed. If partial translation was produced earlier, retry may succeed or produce partial audio.';
+          } else if (err.phase === 'tts') {
+            guidance = 'TTS failed. Retry will re-run all phases (no granular TTS-only retry).';
+          } else if (err.phase === 'scrape') {
+            guidance = 'Scrape failed. The site may block requests or be temporarily unavailable.';
+          }
+        }
+        const msg = err.message || 'Failed';
+        setError(guidance ? `${msg} – ${guidance}` : msg);
+        setStatus('error');
+      }
     } finally {
       setInFlightKey(null);
+      abortRef.current = null;
+    }
+  }
+
+  // 13.3 Retry last failed (full request re-run) explanation via function
+  function handleRetryLast() {
+    if (status === 'loading') return;
+    const last = lastRequestRef.current;
+    if (!last) return;
+    // Re-hydrate form values (in case changed) then submit
+    setUrl(last.url);
+    setLang(last.effectiveLang || lang);
+    handleSubmit(new Event('submit'));
+  }
+
+  function handleCancel() {
+    if (abortRef.current) {
+      try { abortRef.current.abort(); } catch {}
     }
   }
 
@@ -309,7 +358,7 @@ export default function SingleProcessForm({ externalState }) {
               {!voicesLoading && voices.map(v => <option key={v} value={v}>{v}</option>)}
             </select>
           </div>
-          <div>
+          <div className="flex gap-2 flex-wrap">
             <Button type="submit" disabled={!canSubmit || showUrlError || showLangError || (inFlightKey !== null && status==='loading')} aria-disabled={!canSubmit || showUrlError || showLangError || (inFlightKey !== null && status==='loading')}>
               {status === 'loading' && (
                 <>
@@ -319,10 +368,20 @@ export default function SingleProcessForm({ externalState }) {
               )}
               {status !== 'loading' && 'Process'}
             </Button>
+            {status === 'loading' && (
+              <Button type="button" variant="secondary" onClick={handleCancel}>
+                Cancel
+              </Button>
+            )}
+            {status === 'error' && lastRequestRef.current && (
+              <Button type="button" variant="outline" onClick={handleRetryLast}>
+                Retry Last
+              </Button>
+            )}
           </div>
         </fieldset>
       </form>
-      {error && (
+    {error && (
         <div className="mt-4">
           <Alert
             variant="destructive"
@@ -331,7 +390,7 @@ export default function SingleProcessForm({ externalState }) {
               {
                 label: 'Retry',
                 variant: 'secondary',
-                onClick: () => { setStatus('idle'); setError(null); }
+        onClick: () => { setStatus('idle'); setError(null); }
               },
               {
                 label: 'Try Again',
@@ -341,6 +400,8 @@ export default function SingleProcessForm({ externalState }) {
             ]}
           >
             {String(error)}
+      {error === 'Cancelled' && <p className="mt-1 text-[11px] text-muted-foreground">Request aborted locally (no server work may have completed).</p>}
+      {status === 'error' && lastRequestRef.current && <p className="mt-1 text-[11px] text-muted-foreground">Retry re-runs full pipeline; granular phase-only retry not supported.</p>}
           </Alert>
         </div>
       )}

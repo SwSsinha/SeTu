@@ -24,21 +24,36 @@ export const apiClient = {
 };
 
 // Timeline variant returning JSON with phases & base64 audio.
-async function postProcessTimeline({ url, lang, voice }) {
+async function postProcessTimeline({ url, lang, voice, signal }) {
 	const res = await fetch(`${base}/process/timeline`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ url, lang, voice }),
+		signal,
 	});
 	if (!res.ok) {
 		let msg = `Request failed (${res.status})`;
+		let phase = null; let partial = false; let raw = null;
 		try {
-			const data = await res.json();
-			if (data && data.status === 'error') msg = data.error || msg;
+			raw = await res.json();
+			if (raw && raw.status === 'error') {
+				// phases summary may exist; find first failed phase
+				if (Array.isArray(raw.phases)) {
+					const failed = raw.phases.find(p => p.status === 'failed');
+					if (failed) phase = failed.name || failed.phase || null;
+				}
+				if (typeof raw.partial === 'boolean') partial = raw.partial;
+				if (raw.error) msg = raw.error;
+			}
 		} catch {
 			try { msg = await res.text() || msg; } catch {}
 		}
-		throw new Error(msg);
+		const err = new Error(msg);
+		err.status = res.status;
+		if (phase) err.phase = phase;
+		if (partial) err.partial = partial;
+		err.raw = raw;
+		throw err;
 	}
 	const headerMap = Object.fromEntries(res.headers.entries());
 	const json = await res.json();
