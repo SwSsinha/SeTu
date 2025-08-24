@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
+import { apiClient } from '../../lib/apiClient';
 
 // Step 11.1: multiline URL input (limit 5)
 export function BundleForm({ onSubmit }) {
@@ -17,12 +18,20 @@ export function BundleForm({ onSubmit }) {
 	const invalids = limited.filter(l => !isValidUrl(l));
 	const canSubmit = limited.length > 0 && invalids.length === 0 && !submitting;
 
-	async function handleSubmit(e) {
+		const [bundleResp, setBundleResp] = useState(null);
+		const [bundleError, setBundleError] = useState(null);
+		const [lang, setLang] = useState('hi');
+		const [voice, setVoice] = useState(''); // optional entry (left blank for now – enhancement later)
+
+		async function handleSubmit(e) {
 		e.preventDefault();
 		if (!canSubmit) return;
 		setSubmitting(true);
+			setBundleResp(null); setBundleError(null);
 		try {
-			await onSubmit?.({ urls: limited }); // API call implemented next step 11.2
+				const resp = await apiClient.postProcessBundle({ urls: limited, lang, voice: voice || undefined });
+				setBundleResp(resp);
+				await onSubmit?.({ urls: limited, response: resp });
 		} finally { setSubmitting(false); }
 	}
 
@@ -50,6 +59,13 @@ export function BundleForm({ onSubmit }) {
 					{submitting ? 'Preparing…' : 'Prepare Bundle'}
 				</Button>
 			</div>
+					{bundleError && <p className="text-[11px] text-destructive">{bundleError}</p>}
+					{bundleResp && (
+						<div className="mt-4 text-[11px] space-y-1">
+							<p>runId: <span className="font-mono">{bundleResp.runId || '—'}</span> resultId: <span className="font-mono">{bundleResp.resultId || '—'}</span>{bundleResp.cacheHit && ' (cache)'}{bundleResp.partial && ' (partial)'}</p>
+							<p>bundle: count={bundleResp.bundle?.count} failed={Array.isArray(bundleResp.bundle?.failed) ? bundleResp.bundle.failed.length : 0}</p>
+						</div>
+					)}
 		</form>
 	);
 }

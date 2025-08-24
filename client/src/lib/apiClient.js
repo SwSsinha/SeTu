@@ -133,3 +133,18 @@ apiClient.postProcessMulti = async function postProcessMulti({ url, langs, voice
 	return await res.json(); // { url, runId, items: [ { lang, cacheHit, resultId, partial, retries, summary, audio{...} } ] }
 };
 
+// Bundle processing (Module 11)
+apiClient.postProcessBundle = async function postProcessBundle({ urls, lang, voice }) {
+	const res = await fetch(`${base}/process-bundle`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ urls, lang, voice })
+	});
+	if (!res.ok) {
+		let msg = `Request failed (${res.status})`;
+		try { const j = await res.json(); if (j.error) msg = j.error; } catch {}
+		throw new Error(msg);
+	}
+	return await res.json();
+};
+
