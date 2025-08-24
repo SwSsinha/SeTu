@@ -5,6 +5,7 @@ const historyRouter = require('./history.route');
 const processMultiRouter = require('./processMulti.route');
 const metricsLiteRouter = require('./metricsLite.route');
 const processBundleRouter = require('./processBundle.route');
+const voicesRouter = require('./voices.route');
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use('/api/history', historyRouter);
 router.use('/api/process-multi', processMultiRouter);
 router.use('/api/metrics-lite', metricsLiteRouter);
 router.use('/api/process-bundle', processBundleRouter);
+router.use('/api/voices', voicesRouter);
 
 module.exports = router;

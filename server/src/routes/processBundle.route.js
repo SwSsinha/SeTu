@@ -80,7 +80,8 @@ router.post('/', validateBundle, asyncHandler(async (req, res) => {
   for (const u of urls) {
     const perMetrics = {};
     try {
-      const text = await scrapeArticle({ url: u, metrics: perMetrics });
+  let text = await scrapeArticle({ url: u, metrics: perMetrics });
+  try { const { stripBoilerplate } = require('../utils/text'); text = stripBoilerplate(text); } catch {}
       scraped.push({ url: u, text });
       totalPortiaRetries += perMetrics.portiaRetries || 0;
     } catch (e) {
@@ -93,7 +94,12 @@ router.post('/', validateBundle, asyncHandler(async (req, res) => {
   const partialScrape = failed.length > 0;
 
   const separator = '\n\n---\n\n';
-  const combinedOriginal = scraped.map(s => s.text).join(separator);
+  let combinedOriginal = scraped.map(s => s.text).join(separator);
+  const WORD_LIMIT = 5000;
+  const combinedWords = combinedOriginal.split(/\s+/);
+  if (combinedWords.length > WORD_LIMIT) {
+    combinedOriginal = combinedWords.slice(0, WORD_LIMIT).join(' ');
+  }
   const combinedSummary = summarize(combinedOriginal) || '';
 
   const translationMetrics = {};
@@ -106,10 +112,10 @@ router.post('/', validateBundle, asyncHandler(async (req, res) => {
 
   let ttsText = translationResult.text;
   if (!ttsText || ttsText.trim().length < 5) ttsText = combinedOriginal.slice(0, 800);
-  // Guard extremely large TTS input (pragmatic limit)
-  const MAX_TTS_CHARS = 12000;
+  // Guard extremely large TTS input (align with single route limit)
+  const MAX_TTS_CHARS = 5000;
   let truncated = false;
-  if (ttsText.length > MAX_TTS_CHARS) { ttsText = ttsText.slice(0, MAX_TTS_CHARS); truncated = true; }
+  if (ttsText.length > MAX_TTS_CHARS) { ttsText = ttsText.slice(0, MAX_TTS_CHARS) + '...'; truncated = true; }
 
   const ttsMetrics = {};
   let audioStream; let ttsProvider = 'elevenlabs';

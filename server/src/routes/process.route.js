@@ -39,13 +39,27 @@ router.post(
 
 		const metrics = {};
 		const startTs = Date.now();
-		const articleText = await scrapeArticle({ url, metrics });
-		const summaryText = summarize(articleText);
+	let articleText = await scrapeArticle({ url, metrics });
+		// Truncate to 5000 words max for performance and translation limits
+		const WORD_LIMIT = 5000;
+		const words = articleText.split(/\s+/);
+		if (words.length > WORD_LIMIT) {
+			articleText = words.slice(0, WORD_LIMIT).join(' ');
+		}
+	try { const { stripBoilerplate } = require('../utils/text'); articleText = stripBoilerplate(articleText); } catch {}
+	const summaryText = summarize(articleText);
 		const translationResult = await translateText({ text: articleText, targetLang: lang, allowPartial: true, metrics });
 		let ttsText = translationResult.text;
 		if (!ttsText || ttsText.trim().length < 5) {
 			// fallback: small slice of original article if translation empty
 			ttsText = articleText.slice(0, 400);
+		}
+		// Guard extremely large translation outputs before TTS (avoid provider hard limits)
+		const MAX_TTS_CHARS = 5000; // spoken content limit
+		let ttsTruncated = false;
+		if (ttsText.length > MAX_TTS_CHARS) {
+			ttsText = ttsText.slice(0, MAX_TTS_CHARS) + '...';
+			ttsTruncated = true;
 		}
 		let audioStream; let ttsProvider = 'elevenlabs';
 		try {
@@ -64,7 +78,7 @@ router.post(
 			{ url, lang, voice },
 			{
 				audioBuffer: buf,
-				meta: { url, lang, voice, textChars: ttsText.length, summary: summaryText, partial: translationResult.partial, ttsProvider, metrics },
+				meta: { url, lang, voice, textChars: ttsText.length, summary: summaryText, partial: translationResult.partial, ttsProvider, metrics, ttsTruncated },
 			}
 		);
 		pushRun({
@@ -192,7 +206,7 @@ router.post(
 		try {
 			translationResult = await translateText({ text: articleText, targetLang: lang, allowPartial: true, metrics });
 			translated = translationResult.text;
-			tracker.succeed(translatePhase, { length: translated.length, partial: translationResult.partial, retries: metrics.translationRetries || 0 });
+			tracker.succeed(translatePhase, { length: translated.length, partial: translationResult.partial, retries: metrics.translationRetries || 0, fallback: translationResult.fallback || null, altAttempts: metrics.altTranslationAttempts || 0 });
 		} catch (e) {
 			// If translation threw without partial data, hard fail
 			tracker.fail(translatePhase, e);
@@ -202,10 +216,22 @@ router.post(
 		let ttsPhase = tracker.start('tts');
 		let audioBuffer;
 		let ttsProvider = 'elevenlabs'; // moved outside try for later reference
+		let ttsTruncated = false;
 		try {
 			let ttsText = translated;
 			if (!ttsText || ttsText.trim().length < 5) {
-				ttsText = articleText.slice(0, 400);
+				if (lang === 'hi') {
+					const base = articleText.slice(0, 400).replace(/\s+/g,' ').trim();
+					ttsText = 'अनुमानित सारांश: ' + base;
+				} else {
+					ttsText = articleText.slice(0, 500);
+				}
+			}
+			// Guard extremely large translation outputs before TTS (avoid provider limits)
+			const MAX_TTS_CHARS = 5000;
+			if (ttsText.length > MAX_TTS_CHARS) {
+				ttsText = ttsText.slice(0, MAX_TTS_CHARS) + '...';
+				ttsTruncated = true;
 			}
 			let audioStream;
 			try {
@@ -224,10 +250,10 @@ router.post(
 			} else {
 				audioBuffer = await streamToBuffer(audioStream);
 			}
-			tracker.succeed(ttsPhase, { bytes: audioBuffer.length, voice: voice || null, partial: translationResult.partial || false, retries: metrics.ttsRetries || 0 });
+			tracker.succeed(ttsPhase, { bytes: audioBuffer.length, voice: voice || null, partial: translationResult.partial || false, retries: metrics.ttsRetries || 0, truncated: ttsTruncated });
 		} catch (e) {
 			tracker.fail(ttsPhase, e);
-			return res.status(e.status || 500).json({ runId, ...tracker.summary(), status: 'error', partial: translationResult?.partial || false });
+			return res.status(e.status || 500).json({ runId, ...tracker.summary(), status: 'error', partial: translationResult?.partial || false, errorDetail: e.detail || e.message });
 		}
 
 		// Store in cache
@@ -235,7 +261,7 @@ router.post(
 			{ url, lang, voice },
 			{
 				audioBuffer,
-				meta: { url, lang, voice, textChars: translated.length, summary: summaryText, partial: translationResult.partial, ttsProvider, metrics },
+				meta: { url, lang, voice, textChars: translated.length, summary: summaryText, partial: translationResult.partial, ttsProvider, metrics, ttsTruncated },
 			}
 		);
 		pushRun({
@@ -267,6 +293,8 @@ router.post(
 			ttsProvider,
 			translationChars: translated.length,
 			summaryChars: summaryText.length,
+			translationFallback: translationResult.fallback || null,
+			altTranslationAttempts: metrics.altTranslationAttempts || 0,
 			retries: {
 				portia: metrics.portiaRetries || 0,
 				translation: metrics.translationRetries || 0,

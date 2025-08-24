@@ -286,16 +286,19 @@ export default function SingleProcessForm({ externalState }) {
         <h1 id="single-process-heading" className="text-2xl font-bold tracking-tight">Single Process</h1>
         <p className="text-sm text-muted-foreground">Enter a URL to generate summary, translation & audio.</p>
       </div>
-      {/* Example URLs (Step 7.1) */}
+      {/* Example URLs (Step 7.1) – trimmed / reliable & under translation limit (~5k chars) */}
       <div className="flex flex-wrap gap-2" aria-label="Example URLs">
-        <Button type="button" variant="outline" size="sm" onClick={() => setUrl('https://en.wikipedia.org/wiki/Artificial_intelligence')}>
-          Try AI (Wikipedia)
+        {/* Health-focused (project agenda) – concise WHO article */}
+        <Button type="button" variant="outline" size="sm" onClick={() => setUrl('https://www.who.int/news-room/fact-sheets/detail/healthy-diet')}>
+          Try Health (WHO)
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => setUrl('https://www.un.org/en/climatechange/what-is-climate-change')}>
-          Try Climate (UN)
+        {/* AI concise overview (shorter subsection) */}
+        <Button type="button" variant="outline" size="sm" onClick={() => setUrl('https://en.wikipedia.org/wiki/Artificial_intelligence#Applications')}>
+          Try AI (Applications)
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => setUrl('https://www.britannica.com/technology/blockchain')}>
-          Try Blockchain
+        {/* Climate concise explainer (NASA) */}
+        <Button type="button" variant="outline" size="sm" onClick={() => setUrl('https://climate.nasa.gov/resources/faq/') }>
+          Try Climate (NASA FAQ)
         </Button>
       </div>
   <form className="space-y-5" aria-describedby="single-process-desc" onSubmit={handleSubmit} noValidate>
