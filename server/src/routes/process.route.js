@@ -201,12 +201,13 @@ router.post(
 
 		let ttsPhase = tracker.start('tts');
 		let audioBuffer;
+		let ttsProvider = 'elevenlabs'; // moved outside try for later reference
 		try {
 			let ttsText = translated;
 			if (!ttsText || ttsText.trim().length < 5) {
 				ttsText = articleText.slice(0, 400);
 			}
-			let audioStream; let ttsProvider = 'elevenlabs';
+			let audioStream;
 			try {
 				const gen = await generateTts({ text: ttsText, voiceId: voice, metrics });
 				audioStream = gen.stream; ttsProvider = gen.provider;
