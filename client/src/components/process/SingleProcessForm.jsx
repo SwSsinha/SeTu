@@ -26,7 +26,13 @@ export default function SingleProcessForm({ externalState }) {
   const signatureCacheRef = useRef(new Map()); // key -> { timestamp, resultId, runId }
   const urlTrimmed = url.trim();
 
-  const presetLangs = ['hi','en','es'];
+  // Display full language names while keeping ISO codes as values
+  const languageOptions = [
+    { code: 'hi', label: 'Hindi' },
+    { code: 'en', label: 'English' },
+    { code: 'es', label: 'Spanish' },
+  ];
+  const presetLangs = languageOptions.map(o => o.code);
   const isCustomLang = lang && !presetLangs.includes(lang);
   const [customLang, setCustomLang] = useState(isCustomLang ? lang : '');
   const activeSelectValue = isCustomLang ? 'custom' : (lang || 'en');
@@ -340,8 +346,8 @@ export default function SingleProcessForm({ externalState }) {
               }}
               aria-label="Target language"
             >
-              {presetLangs.map(code => (
-                <option key={code} value={code}>{code}</option>
+              {languageOptions.map(opt => (
+                <option key={opt.code} value={opt.code}>{opt.label}</option>
               ))}
               <option value="custom">Custom…</option>
             </select>
