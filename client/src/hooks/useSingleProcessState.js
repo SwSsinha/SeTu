@@ -21,6 +21,7 @@ export function useSingleProcessState() {
   const [headers, setHeaders] = useState({});
   const [translationChars, setTranslationChars] = useState(0);
   const [summaryChars, setSummaryChars] = useState(0);
+  const [resultMeta, setResultMeta] = useState(null); // metadata from /api/result/:id
   const [voices, setVoices] = useState([]);
   const [voicesLoading, setVoicesLoading] = useState(false);
   const [voice, setVoice] = useState('');
@@ -50,6 +51,7 @@ export function useSingleProcessState() {
   setHeaders({});
   setTranslationChars(0);
   setSummaryChars(0);
+  setResultMeta(null);
   setVoices([]);
   setVoicesLoading(false);
   setVoice('');
@@ -64,6 +66,7 @@ export function useSingleProcessState() {
   url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, voices, voicesLoading, voice, inFlightKey, historyMap, history, error,
     // setters
   setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setVoices, setVoicesLoading, setVoice, setInFlightKey, setHistoryMap, setHistory, setError,
+  resultMeta, setResultMeta,
     // helpers
     reset,
   };

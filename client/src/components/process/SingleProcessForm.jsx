@@ -13,8 +13,8 @@ import { useEffect, useState } from 'react';
 export default function SingleProcessForm({ externalState }) {
   const state = externalState || useSingleProcessState();
   const {
-    url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, voices, voicesLoading, voice, inFlightKey, historyMap, error,
-    setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setVoices, setVoicesLoading, setVoice, setInFlightKey, setHistoryMap, setError, reset,
+  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, voices, voicesLoading, voice, inFlightKey, historyMap, error, resultMeta,
+  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setVoices, setVoicesLoading, setVoice, setInFlightKey, setHistoryMap, setError, setResultMeta, reset,
   } = state;
 
   const disabled = status === 'loading';
@@ -82,6 +82,12 @@ export default function SingleProcessForm({ externalState }) {
   if (typeof tChars === 'number') setTranslationChars(tChars);
   if (typeof sChars === 'number') setSummaryChars(sChars);
       setStatus('done');
+      // Fetch result metadata (Step 9.1)
+      if (rid) {
+        apiClient.fetchResultMeta(rid).then(meta => {
+          setResultMeta(meta);
+        }).catch(()=>{});
+      }
       // Record history entry
       try {
         const now = Date.now();

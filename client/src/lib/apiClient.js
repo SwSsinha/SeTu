@@ -110,3 +110,11 @@ apiClient.fetchResultAudio = async function fetchResultAudio(id) {
 	return { blob, objectUrl: URL.createObjectURL(blob) };
 };
 
+// Fetch result metadata (sizeBytes, ttlRemaining, etc.)
+apiClient.fetchResultMeta = async function fetchResultMeta(id) {
+	if (!id) throw new Error('Missing result id');
+	const res = await fetch(`${base}/result/${id}`);
+	if (!res.ok) throw new Error(`Result not found (${res.status})`);
+	return await res.json();
+};
+
