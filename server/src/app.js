@@ -3,6 +3,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
 const compression = require('compression');
+const path = require('path');
 const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
 const notFound = require('./middleware/notFound');
@@ -22,8 +23,24 @@ app.use(morgan(':method :url :status :res[content-length] - :response-time ms id
 app.use(express.json({ limit: '256kb' }));
 app.use(rateLimiter());
 
-// Routes
+// Health check (Render or other platforms can ping this)
+app.get('/healthz', (req, res) => {
+	res.json({ ok: true, ts: Date.now() });
+});
+
+// API routes
 app.use('/', routes);
+
+// In production serve built client (single-service deployment pattern)
+if (process.env.NODE_ENV === 'production') {
+	const distPath = path.join(__dirname, '../../client/dist');
+	app.use(express.static(distPath));
+	// SPA fallback – exclude API paths
+	app.get('*', (req, res, next) => {
+		if (req.path.startsWith('/api/')) return next();
+		res.sendFile(path.join(distPath, 'index.html'));
+	});
+}
 
 // 404 handler must be after routes
 app.use(notFound);
