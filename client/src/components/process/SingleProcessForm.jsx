@@ -198,6 +198,22 @@ export default function SingleProcessForm({ externalState }) {
     }
   }, [lang, isCustomLang, customLangTrimmed]);
 
+  // TTL countdown (Step 9.2)
+  const [ttlMs, setTtlMs] = useState(null);
+  useEffect(() => {
+    if (status !== 'done' || !resultMeta || typeof resultMeta.ttlRemaining !== 'number') { setTtlMs(null); return; }
+    setTtlMs(resultMeta.ttlRemaining);
+    let raf; let last = performance.now();
+    function tick(ts) {
+      const delta = ts - last; last = ts;
+      setTtlMs(prev => (prev === null ? null : Math.max(0, prev - delta)));
+      if (ttlMs === 0) return; // stop when zero
+      raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => { if (raf) cancelAnimationFrame(raf); };
+  }, [status, resultMeta]);
+
   return (
     <Card className="p-6 space-y-4" role="region" aria-labelledby="single-process-heading">
       <div>
@@ -336,7 +352,7 @@ export default function SingleProcessForm({ externalState }) {
           <p className="text-[11px] text-muted-foreground mt-1">Processing…</p>
         </div>
       )}
-      {status === 'done' && audioSrc && (
+  {status === 'done' && audioSrc && (
         <div className="mt-6 space-y-3" aria-label="Result audio section">
           <audio src={audioSrc} controls className="w-full" aria-label="Generated audio" />
           {cacheHit && (
@@ -361,6 +377,12 @@ export default function SingleProcessForm({ externalState }) {
             >headers</span>
           </div>
           <p className="text-[11px] text-muted-foreground tabular-nums" aria-label="Total processing time">time: <span className="font-mono">{totalMs}ms</span> (<span className="font-mono">{(totalMs/1000).toFixed(2)}s</span>)</p>
+          {resultMeta && typeof ttlMs === 'number' && (
+            <p className="text-[11px] text-muted-foreground tabular-nums" aria-label="TTL remaining">
+              ttl: <span className="font-mono">{Math.ceil(ttlMs/1000)}s</span>{' '}
+              <span className="opacity-70">({(ttlMs/1000).toFixed(1)}s)</span>
+            </p>
+          )}
           <p className="text-[11px] text-muted-foreground tabular-nums" aria-label="Character counts">chars: translation <span className="font-mono">{translationChars}</span>{summaryChars ? <> · summary <span className="font-mono">{summaryChars}</span></> : null}</p>
           {/* Progress / duration representation */}
           {phases?.length > 0 && totalMs > 0 && (
