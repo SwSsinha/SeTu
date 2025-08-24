@@ -1,15 +1,33 @@
 // Individual history entry card displaying required fields.
 // Props: entry { url, lang, voice, partial, durationMs, cacheHit, retries } and onSelect(entry)
 import { Badge } from '../ui/badge';
+import { useRef } from 'react';
+import { apiClient } from '../../lib/apiClient';
 
 export function HistoryItem({ entry, onSelect }) {
 	if (!entry) return null;
 	const { url, lang, voice, partial, durationMs, cacheHit, retries, summaryPreview } = entry;
 	const totalRetries = retries ? (retries.portia || 0) + (retries.translation || 0) + (retries.tts || 0) : 0;
+	// 14.2: preload audio on hover (debounced) – store object URL on entry._preloadedAudioUrl
+	const hoverTimer = useRef(null);
+	function schedulePreload() {
+		if (entry._preloadedAudioUrl || !entry.resultId) return;
+		hoverTimer.current = setTimeout(async () => {
+			try {
+				const { objectUrl } = await apiClient.fetchResultAudio(entry.resultId);
+				entry._preloadedAudioUrl = objectUrl;
+			} catch {}
+		}, 400); // slight delay to avoid waste
+	}
+	function cancelPreload() { if (hoverTimer.current) { clearTimeout(hoverTimer.current); hoverTimer.current = null; } }
 	return (
 		<button
 			type="button"
 			onClick={() => onSelect?.(entry)}
+			onMouseEnter={schedulePreload}
+			onFocus={schedulePreload}
+			onMouseLeave={cancelPreload}
+			onBlur={cancelPreload}
 			className="w-full text-left border rounded-md p-2 hover:bg-muted/60 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
 			aria-label={`History item for ${url}`}
 		>
