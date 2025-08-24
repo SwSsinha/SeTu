@@ -402,11 +402,6 @@ export default function SingleProcessForm({ externalState }) {
               )}
               {status !== 'loading' && 'Process'}
             </Button>
-            {status === 'loading' && (
-              <Button type="button" variant="secondary" onClick={handleCancel}>
-                Cancel
-              </Button>
-            )}
             {status === 'error' && lastRequestRef.current && (
               <Button type="button" variant="outline" onClick={handleRetryLast}>
                 Retry Last
@@ -414,6 +409,13 @@ export default function SingleProcessForm({ externalState }) {
             )}
           </div>
         </fieldset>
+        {status === 'loading' && (
+          <div className="mt-2">
+            <Button type="button" variant="secondary" onClick={handleCancel} aria-label="Cancel in-flight request">
+              Cancel
+            </Button>
+          </div>
+        )}
       </form>
     {error && (
         <div className="mt-4">
