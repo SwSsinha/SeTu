@@ -118,3 +118,18 @@ apiClient.fetchResultMeta = async function fetchResultMeta(id) {
 	return await res.json();
 };
 
+// Batch multi-language processing
+apiClient.postProcessMulti = async function postProcessMulti({ url, langs, voice }) {
+	const res = await fetch(`${base}/process-multi`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ url, langs, voice })
+	});
+	if (!res.ok) {
+		let msg = `Request failed (${res.status})`;
+		try { const j = await res.json(); if (j.error) msg = j.error; } catch {}
+		throw new Error(msg);
+	}
+	return await res.json(); // { url, runId, items: [ { lang, cacheHit, resultId, partial, retries, summary, audio{...} } ] }
+};
+
