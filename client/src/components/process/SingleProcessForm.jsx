@@ -89,6 +89,12 @@ export default function SingleProcessForm({ externalState }) {
         setHistoryMap(next);
         localStorage.setItem('setu.history', JSON.stringify(next));
         // Extended local history entries for server merge (step 8.2)
+        let summaryPreview = '';
+        if (sum && typeof sum === 'string' && sum.length > 0) {
+          summaryPreview = sum.slice(0, 120);
+        } else if (hdrs && hdrs['x-summary-preview']) {
+          try { summaryPreview = decodeURIComponent(hdrs['x-summary-preview']); } catch { summaryPreview = hdrs['x-summary-preview']; }
+        }
         const entry = {
           runId: rrun || null,
           resultId: rid || null,
@@ -98,6 +104,7 @@ export default function SingleProcessForm({ externalState }) {
           partial: !!part,
           cacheHit: !!cHit,
           durationMs: tot || 0,
+          summaryPreview: summaryPreview || null,
           ts: now,
           source: 'local'
         };

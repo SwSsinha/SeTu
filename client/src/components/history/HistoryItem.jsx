@@ -4,7 +4,7 @@ import { Badge } from '../ui/badge';
 
 export function HistoryItem({ entry, onSelect }) {
 	if (!entry) return null;
-	const { url, lang, voice, partial, durationMs, cacheHit, retries } = entry;
+	const { url, lang, voice, partial, durationMs, cacheHit, retries, summaryPreview } = entry;
 	const totalRetries = retries ? (retries.portia || 0) + (retries.translation || 0) + (retries.tts || 0) : 0;
 	return (
 		<button
@@ -26,6 +26,9 @@ export function HistoryItem({ entry, onSelect }) {
 				{voice && <span title="Voice" className="font-mono">{voice}</span>}
 				{typeof durationMs === 'number' && <span title="Duration" className="font-mono">{durationMs}ms</span>}
 			</div>
+			{summaryPreview && (
+				<p className="mt-1 text-[11px] text-muted-foreground line-clamp-2" title={summaryPreview}>{summaryPreview}</p>
+			)}
 		</button>
 	);
 }
