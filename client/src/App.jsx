@@ -1,6 +1,8 @@
 import Layout from './components/layout/Layout';
 import { ThemeProvider } from './context/ThemeProvider';
 import SingleProcessForm from './components/process/SingleProcessForm';
+import { MultiLangForm } from './components/batch/MultiLangForm';
+import { BundleForm } from './components/batch/BundleForm';
 import { HistoryList } from './components/history/HistoryList';
 import { useSingleProcessState } from './hooks/useSingleProcessState';
 
@@ -8,6 +10,7 @@ import { useSingleProcessState } from './hooks/useSingleProcessState';
 export default function App() {
   // Provide a top-level instance of the hook so history list can access combined state
   const state = useSingleProcessState();
+  const [mode, setMode] = useState('single'); // single | multi | bundle (Step 10.1)
   // History selection -> repopulate form fields (Module 8 step 8.4)
   function handleHistorySelect(entry) {
     if (!entry) return;
@@ -61,7 +64,40 @@ export default function App() {
       <Layout>
         <div className="grid gap-8 md:grid-cols-[1fr_300px] items-start">
           <div className="space-y-6">
-            <SingleProcessForm externalState={state} />
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-medium">Mode:</span>
+              <div className="inline-flex rounded-md border overflow-hidden">
+                {[
+                  { key: 'single', label: 'Single' },
+                  { key: 'multi', label: 'Multi-Lang' },
+                  { key: 'bundle', label: 'Bundle' },
+                ].map(opt => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setMode(opt.key)}
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${mode===opt.key ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'} ${opt.key !== 'bundle' ? 'border-r' : ''}`}
+                    aria-pressed={mode===opt.key}
+                    aria-label={`Switch to ${opt.label} mode`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {mode === 'single' && <SingleProcessForm externalState={state} />}
+            {mode === 'multi' && (
+              <div className="border rounded-md p-6 text-sm text-muted-foreground">
+                <p className="mb-2 font-medium">Multi-Language Mode (Coming Soon)</p>
+                <MultiLangForm />
+              </div>
+            )}
+            {mode === 'bundle' && (
+              <div className="border rounded-md p-6 text-sm text-muted-foreground">
+                <p className="mb-2 font-medium">Bundle Mode (Coming Soon)</p>
+                <BundleForm />
+              </div>
+            )}
           </div>
           <div className="space-y-6">
             <HistoryList history={state.history} setHistory={state.setHistory} setHistoryMap={state.setHistoryMap} onSelect={handleHistorySelect} />
