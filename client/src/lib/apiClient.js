@@ -86,3 +86,16 @@ apiClient.fetchVoices = async function fetchVoices() {
 	return Array.isArray(json.voices) ? json.voices : [];
 };
 
+// Fetch history (dev-only unless header provided)
+apiClient.fetchHistory = async function fetchHistory({ limit = 25, debug = false } = {}) {
+	const headers = {};
+	if (debug) headers['X-Debug-History'] = '1';
+	const res = await fetch(`${base}/history?limit=${limit}`, { headers });
+	if (!res.ok) {
+		const text = await res.text().catch(()=> '');
+		throw new Error(text || `Failed history (${res.status})`);
+	}
+	const json = await res.json().catch(()=>({ entries: [] }));
+	return Array.isArray(json.entries) ? json.entries : [];
+};
+

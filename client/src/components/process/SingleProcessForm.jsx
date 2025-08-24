@@ -10,11 +10,12 @@ import { Badge } from '../ui/badge';
 import { useEffect, useState } from 'react';
 
 // Static single process form (Step 1.3) – only structure, no logic yet.
-export default function SingleProcessForm() {
+export default function SingleProcessForm({ externalState }) {
+  const state = externalState || useSingleProcessState();
   const {
-  url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, voices, voicesLoading, voice, inFlightKey, historyMap, error,
-  setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setVoices, setVoicesLoading, setVoice, setInFlightKey, setHistoryMap, setError, reset,
-  } = useSingleProcessState();
+    url, lang, status, audioSrc, audioBlob, phases, summary, resultId, runId, partial, cacheHit, ttsProvider, totalMs, retries, headers, translationChars, summaryChars, voices, voicesLoading, voice, inFlightKey, historyMap, error,
+    setUrl, setLang, setStatus, setAudioSrc, setAudioBlob, setPhases, setSummary, setResultId, setRunId, setPartial, setCacheHit, setTtsProvider, setTotalMs, setRetries, setHeaders, setTranslationChars, setSummaryChars, setVoices, setVoicesLoading, setVoice, setInFlightKey, setHistoryMap, setError, reset,
+  } = state;
 
   const disabled = status === 'loading';
   const urlTrimmed = url.trim();
