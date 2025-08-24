@@ -58,6 +58,7 @@ router.post('/', validateBundle, asyncHandler(async (req, res) => {
       resultId: entry.id,
       ttsProvider: meta.ttsProvider || 'elevenlabs',
       bundle,
+      summary: meta.summary || '',
       retries: {
         portia: m.portiaRetries || 0,
         translation: m.translationRetries || 0,
@@ -145,6 +146,7 @@ router.post('/', validateBundle, asyncHandler(async (req, res) => {
     resultId: id,
     ttsProvider,
     bundle: { count: urls.length, failed, partialScrape, truncated, originalChars: combinedOriginal.length, translatedChars: translationResult.text.length },
+  summary: combinedSummary,
     retries: { portia: metrics.portiaRetries, translation: metrics.translationRetries, tts: metrics.ttsRetries },
     partial: translationResult.partial || partialScrape,
     audio: { mime: 'audio/mpeg', base64: audioBuffer.toString('base64'), dataUri: `data:audio/mpeg;base64,${audioBuffer.toString('base64')}`, url: `/api/result/${id}/audio` },

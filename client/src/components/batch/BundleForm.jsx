@@ -69,9 +69,16 @@ export function BundleForm({ onSubmit }) {
 											{bundleResp.cacheHit && <span className="px-1.5 py-0.5 rounded bg-accent text-accent-foreground">cache</span>}
 											{bundleResp.partial && <span className="px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">partial</span>}
 											{bundleResp.bundle?.partialScrape && <span className="px-1.5 py-0.5 rounded bg-amber-500 text-black" title="Some URLs failed to scrape">partial-scrape</span>}
+													{bundleResp.bundle?.truncated && <span className="px-1.5 py-0.5 rounded bg-destructive text-destructive-foreground" title="Text truncated before TTS">truncated</span>}
 										</p>
 										<p>bundle: count={bundleResp.bundle?.count} failed={Array.isArray(bundleResp.bundle?.failed) ? bundleResp.bundle.failed.length : 0}</p>
 									</div>
+											{bundleResp.summary && (
+												<div className="border rounded-md p-3 bg-muted/30 max-h-60 overflow-auto">
+													<p className="text-xs font-medium mb-1">Combined Summary</p>
+													<p className="text-xs leading-snug whitespace-pre-line">{bundleResp.summary}</p>
+												</div>
+											)}
 									<div>
 										<h4 className="font-medium mb-1">URLs</h4>
 										<ul className="space-y-1">
