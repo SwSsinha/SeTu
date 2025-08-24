@@ -23,6 +23,9 @@ export function BundleForm({ onSubmit }) {
 		const [lang, setLang] = useState('hi');
 		const [voice, setVoice] = useState(''); // optional entry (left blank for now – enhancement later)
 			const [submittedUrls, setSubmittedUrls] = useState([]);
+				const [bundleAudioUrl, setBundleAudioUrl] = useState(null);
+				const [bundleAudioBlob, setBundleAudioBlob] = useState(null);
+				const [bundleAudioSize, setBundleAudioSize] = useState(0);
 
 		async function handleSubmit(e) {
 		e.preventDefault();
@@ -31,8 +34,24 @@ export function BundleForm({ onSubmit }) {
 			setBundleResp(null); setBundleError(null);
 		try {
 				setSubmittedUrls(limited);
-				const resp = await apiClient.postProcessBundle({ urls: limited, lang, voice: voice || undefined });
+						const resp = await apiClient.postProcessBundle({ urls: limited, lang, voice: voice || undefined });
 				setBundleResp(resp);
+						// Decode audio (base64) for player (Step 11.5)
+						try {
+							if (resp?.audio?.base64) {
+								const b64 = resp.audio.base64;
+								const binary = typeof atob === 'function' ? atob(b64) : Buffer.from(b64, 'base64').toString('binary');
+								const len = binary.length; const bytes = new Uint8Array(len);
+								for (let i=0;i<len;i++) bytes[i] = binary.charCodeAt(i);
+								const blob = new Blob([bytes], { type: resp.audio.mime || 'audio/mpeg' });
+								const objUrl = URL.createObjectURL(blob);
+								setBundleAudioBlob(blob);
+								setBundleAudioUrl(objUrl);
+								setBundleAudioSize(bytes.length);
+							} else {
+								setBundleAudioBlob(null); setBundleAudioUrl(null); setBundleAudioSize(0);
+							}
+						} catch {}
 				await onSubmit?.({ urls: limited, response: resp });
 		} finally { setSubmitting(false); }
 	}
@@ -79,6 +98,25 @@ export function BundleForm({ onSubmit }) {
 													<p className="text-xs leading-snug whitespace-pre-line">{bundleResp.summary}</p>
 												</div>
 											)}
+														{bundleAudioUrl && (
+															<div className="space-y-1">
+																<audio src={bundleAudioUrl} controls className="w-full" aria-label="Bundle audio" />
+																<div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+																	<span>size: <span className="font-mono">{bundleAudioSize}B</span>{' '}(~{(bundleAudioSize/1024).toFixed(1)}KB)</span>
+																	{bundleResp.audio?.url && <a href={bundleResp.audio.url} target="_blank" rel="noopener noreferrer" className="underline">open</a>}
+																	{bundleAudioUrl && (
+																		<button
+																			type="button"
+																			className="underline"
+																			onClick={() => {
+																				const a = document.createElement('a');
+																				a.href = bundleAudioUrl; a.download = `bundle_${lang}.mp3`; document.body.appendChild(a); a.click(); a.remove();
+																			}}
+																		>download</button>
+																	)}
+																</div>
+															</div>
+														)}
 									<div>
 										<h4 className="font-medium mb-1">URLs</h4>
 										<ul className="space-y-1">
