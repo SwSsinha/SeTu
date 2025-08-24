@@ -88,6 +88,8 @@ export function BundleForm({ onSubmit }) {
 					{bundleError && <p className="text-[11px] text-destructive">{bundleError}</p>}
 							{bundleResp && (
 								<div className="mt-4 text-[11px] space-y-3">
+									{/* Step 11.7: Share Podcast action */}
+									<ShareActions bundleResp={bundleResp} lang={lang} voice={voice} />
 									<div className="space-y-1">
 										<p className="flex flex-wrap items-center gap-2">runId: <span className="font-mono">{bundleResp.runId || '—'}</span> resultId: <span className="font-mono">{bundleResp.resultId || '—'}</span>
 											{bundleResp.cacheHit && <span className="px-1.5 py-0.5 rounded bg-accent text-accent-foreground">cache</span>}
@@ -180,5 +182,66 @@ export function BundleForm({ onSubmit }) {
 								</div>
 							)}
 		</form>
+	);
+}
+
+// Step 11.7: lightweight share component (exports a JSON snippet to clipboard)
+function ShareActions({ bundleResp, lang, voice }) {
+	if (!bundleResp) return null;
+	const shareData = {
+		type: 'bundlePodcast',
+		version: 1,
+		resultId: bundleResp.resultId,
+		runId: bundleResp.runId,
+		lang,
+		voice: voice || null,
+		cacheHit: !!bundleResp.cacheHit,
+		provider: bundleResp.ttsProvider,
+		summary: bundleResp.summary || '',
+		bundle: {
+			count: bundleResp.bundle?.count,
+			failed: Array.isArray(bundleResp.bundle?.failed) ? bundleResp.bundle.failed.map(f=>f.url) : [],
+			partialScrape: !!bundleResp.bundle?.partialScrape,
+			truncated: !!bundleResp.bundle?.truncated,
+			originalChars: bundleResp.bundle?.originalChars,
+			translatedChars: bundleResp.bundle?.translatedChars,
+		},
+		audio: {
+			url: bundleResp.audio?.url || null,
+			mime: bundleResp.audio?.mime || 'audio/mpeg'
+		},
+		partial: !!bundleResp.partial,
+		retries: bundleResp.retries || { portia:0, translation:0, tts:0 },
+		// Minimal timestamp (client-side) for reference
+		sharedAt: new Date().toISOString(),
+	};
+	async function copyShare() {
+		try {
+			await navigator.clipboard.writeText(JSON.stringify(shareData, null, 2));
+			// simple UX flash: change button text briefly
+			const btn = document.getElementById('btn-copy-share');
+			if (btn) {
+				const orig = btn.textContent; btn.textContent = 'Copied!';
+				setTimeout(()=> { btn.textContent = orig; }, 1400);
+			}
+		} catch {}
+	}
+	return (
+		<div className="flex flex-wrap items-center gap-2">
+			<button
+				id="btn-copy-share"
+				type="button"
+				onClick={copyShare}
+				className="px-2 py-1 border rounded bg-muted/40 hover:bg-muted text-[11px]"
+			>Share Podcast (copy JSON)</button>
+			{shareData.audio.url && (
+				<a
+					href={shareData.audio.url}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="underline"
+				>Audio Link</a>
+			)}
+		</div>
 	);
 }
