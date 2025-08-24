@@ -1,10 +1,11 @@
 // Individual history entry card displaying required fields.
-// Props: entry { url, lang, voice, partial, durationMs, cacheHit } and onSelect(entry)
+// Props: entry { url, lang, voice, partial, durationMs, cacheHit, retries } and onSelect(entry)
 import { Badge } from '../ui/badge';
 
 export function HistoryItem({ entry, onSelect }) {
 	if (!entry) return null;
-	const { url, lang, voice, partial, durationMs, cacheHit } = entry;
+	const { url, lang, voice, partial, durationMs, cacheHit, retries } = entry;
+	const totalRetries = retries ? (retries.portia || 0) + (retries.translation || 0) + (retries.tts || 0) : 0;
 	return (
 		<button
 			type="button"
@@ -17,6 +18,7 @@ export function HistoryItem({ entry, onSelect }) {
 				<div className="flex items-center gap-1 flex-shrink-0">
 					{cacheHit && <Badge variant="outline" aria-label="Cache hit">Cache</Badge>}
 					{partial && <Badge variant="secondary" aria-label="Partial translation">Partial</Badge>}
+					{totalRetries > 0 && <Badge variant="destructive" aria-label={`${totalRetries} retries`} title={`Retries: portia=${retries?.portia||0} translation=${retries?.translation||0} tts=${retries?.tts||0}`}>R{totalRetries}</Badge>}
 				</div>
 			</div>
 			<div className="flex flex-wrap items-center gap-2 mt-2 text-[11px] text-muted-foreground tabular-nums">
