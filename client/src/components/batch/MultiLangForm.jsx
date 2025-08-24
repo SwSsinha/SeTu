@@ -82,7 +82,7 @@ export function MultiLangForm({ onSubmit }) {
 				<select id="multi-voice" className="w-full border border-border rounded-md px-3 py-2 text-sm bg-background" value={voice} onChange={e=> setVoice(e.target.value)}>
 					{voicesLoading && <option value="" disabled>Loading voices…</option>}
 					{!voicesLoading && voices.length === 0 && <option value="" disabled>No voices</option>}
-					{!voicesLoading && voices.map(v => <option key={v} value={v}>{v}</option>)}
+					{!voicesLoading && voices.map((v,i) => <option key={v} value={v} title={v}>Voice {i+1}</option>)}
 				</select>
 			</div>
 			{error && <p className="text-xs text-destructive">{error}</p>}

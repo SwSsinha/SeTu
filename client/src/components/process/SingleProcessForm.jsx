@@ -389,7 +389,9 @@ export default function SingleProcessForm({ externalState }) {
             >
               {voicesLoading && <option value="" disabled>Loading voices…</option>}
               {!voicesLoading && voices.length === 0 && <option value="" disabled>No voices</option>}
-              {!voicesLoading && voices.map(v => <option key={v} value={v}>{v}</option>)}
+              {!voicesLoading && voices.map((v,i) => (
+                <option key={v} value={v} title={v}>Voice {i+1}</option>
+              ))}
             </select>
           </div>
           <div className="flex gap-2 flex-wrap">

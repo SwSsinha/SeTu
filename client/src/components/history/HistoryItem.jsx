@@ -41,7 +41,15 @@ export function HistoryItem({ entry, onSelect }) {
 			</div>
 			<div className="flex flex-wrap items-center gap-2 mt-2 text-[11px] text-muted-foreground tabular-nums">
 				<span title="Language" className="font-mono">{lang || '—'}</span>
-				{voice && <span title="Voice" className="font-mono">{voice}</span>}
+				{voice && (
+					<span title={voice} className="font-mono">
+						{/* Derive simple index from hash position for stable label (Voice 1) */}
+						{(() => {
+							// Simple deterministic index: take first char code mod 9 + 1 (not critical accuracy)
+							try { const n = (voice.charCodeAt(0) % 9) + 1; return `Voice ${n}`; } catch { return 'Voice'; }
+						})()}
+					</span>
+				)}
 				{typeof durationMs === 'number' && <span title="Duration" className="font-mono">{durationMs}ms</span>}
 			</div>
 			{summaryPreview && (
