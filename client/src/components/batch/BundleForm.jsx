@@ -18,10 +18,11 @@ export function BundleForm({ onSubmit }) {
 	const invalids = limited.filter(l => !isValidUrl(l));
 	const canSubmit = limited.length > 0 && invalids.length === 0 && !submitting;
 
-		const [bundleResp, setBundleResp] = useState(null);
+			const [bundleResp, setBundleResp] = useState(null);
 		const [bundleError, setBundleError] = useState(null);
 		const [lang, setLang] = useState('hi');
 		const [voice, setVoice] = useState(''); // optional entry (left blank for now – enhancement later)
+			const [submittedUrls, setSubmittedUrls] = useState([]);
 
 		async function handleSubmit(e) {
 		e.preventDefault();
@@ -29,6 +30,7 @@ export function BundleForm({ onSubmit }) {
 		setSubmitting(true);
 			setBundleResp(null); setBundleError(null);
 		try {
+				setSubmittedUrls(limited);
 				const resp = await apiClient.postProcessBundle({ urls: limited, lang, voice: voice || undefined });
 				setBundleResp(resp);
 				await onSubmit?.({ urls: limited, response: resp });
@@ -60,12 +62,35 @@ export function BundleForm({ onSubmit }) {
 				</Button>
 			</div>
 					{bundleError && <p className="text-[11px] text-destructive">{bundleError}</p>}
-					{bundleResp && (
-						<div className="mt-4 text-[11px] space-y-1">
-							<p>runId: <span className="font-mono">{bundleResp.runId || '—'}</span> resultId: <span className="font-mono">{bundleResp.resultId || '—'}</span>{bundleResp.cacheHit && ' (cache)'}{bundleResp.partial && ' (partial)'}</p>
-							<p>bundle: count={bundleResp.bundle?.count} failed={Array.isArray(bundleResp.bundle?.failed) ? bundleResp.bundle.failed.length : 0}</p>
-						</div>
-					)}
+							{bundleResp && (
+								<div className="mt-4 text-[11px] space-y-3">
+									<div className="space-y-1">
+										<p className="flex flex-wrap items-center gap-2">runId: <span className="font-mono">{bundleResp.runId || '—'}</span> resultId: <span className="font-mono">{bundleResp.resultId || '—'}</span>
+											{bundleResp.cacheHit && <span className="px-1.5 py-0.5 rounded bg-accent text-accent-foreground">cache</span>}
+											{bundleResp.partial && <span className="px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">partial</span>}
+											{bundleResp.bundle?.partialScrape && <span className="px-1.5 py-0.5 rounded bg-amber-500 text-black" title="Some URLs failed to scrape">partial-scrape</span>}
+										</p>
+										<p>bundle: count={bundleResp.bundle?.count} failed={Array.isArray(bundleResp.bundle?.failed) ? bundleResp.bundle.failed.length : 0}</p>
+									</div>
+									<div>
+										<h4 className="font-medium mb-1">URLs</h4>
+										<ul className="space-y-1">
+											{submittedUrls.map(u => {
+												const failedEntry = bundleResp.bundle?.failed?.find(f => f.url === u);
+												const ok = !failedEntry;
+												return (
+													<li key={u} className="flex items-start justify-between gap-2 border rounded px-2 py-1 bg-muted/30">
+														<span className="truncate font-mono" title={u}>{u}</span>
+														<span className={ok ? 'text-green-600 dark:text-green-400 text-xs' : 'text-destructive text-xs'}>
+															{ok ? 'success' : 'failed'}
+														</span>
+													</li>
+												);
+											})}
+										</ul>
+									</div>
+								</div>
+							)}
 		</form>
 	);
 }
