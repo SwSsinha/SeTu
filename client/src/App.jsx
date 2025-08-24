@@ -64,7 +64,7 @@ export default function App() {
             <SingleProcessForm externalState={state} />
           </div>
           <div className="space-y-6">
-            <HistoryList history={state.history} setHistory={state.setHistory} onSelect={handleHistorySelect} />
+            <HistoryList history={state.history} setHistory={state.setHistory} setHistoryMap={state.setHistoryMap} onSelect={handleHistorySelect} />
           </div>
         </div>
       </Layout>

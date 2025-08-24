@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '../../lib/apiClient';
 import { HistoryItem } from './HistoryItem';
+import { Button } from '../ui/button';
 
-export function HistoryList({ history, setHistory, onSelect }) {
+export function HistoryList({ history, setHistory, onSelect, setHistoryMap }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -36,9 +37,34 @@ export function HistoryList({ history, setHistory, onSelect }) {
     return () => { cancelled = true; };
   }, [setHistory]);
 
+  function clearLocalHistory() {
+    if (!window.confirm('Clear local history? This will remove locally stored entries.')) return;
+    try {
+      localStorage.removeItem('setu.history');
+      localStorage.removeItem('setu.historyEntries');
+    } catch {}
+    if (setHistoryMap) setHistoryMap({});
+    // Keep server entries (source === 'server')
+    const remaining = history.filter(h => h.source === 'server');
+    setHistory(remaining);
+  }
+
   return (
     <div className="space-y-2" aria-label="History section">
-      <h2 className="text-sm font-semibold tracking-tight">History</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold tracking-tight">History</h2>
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          onClick={clearLocalHistory}
+          disabled={history.length === 0 || !history.some(h => h.source === 'local')}
+          aria-label="Clear local history"
+          className="h-6 px-2 text-[11px]"
+        >
+          Clear
+        </Button>
+      </div>
       {loading && <p className="text-xs text-muted-foreground">Loading…</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
       {!loading && !error && history.length === 0 && (
