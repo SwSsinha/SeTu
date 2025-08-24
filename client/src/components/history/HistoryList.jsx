@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Alert } from '../ui/alert';
 import { apiClient } from '../../lib/apiClient';
 import { HistoryItem } from './HistoryItem';
 import { Button } from '../ui/button';
@@ -6,6 +7,12 @@ import { Button } from '../ui/button';
 export function HistoryList({ history, setHistory, onSelect, setHistoryMap }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 2500);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,6 +45,12 @@ export function HistoryList({ history, setHistory, onSelect, setHistoryMap }) {
   }, [setHistory]);
 
   function clearLocalHistory() {
+    // Always allow click; only prompt if there are local entries
+    const hasLocal = history.some(h => h.source === 'local');
+    if (!hasLocal) {
+      setNotice('No local entries to clear');
+      return;
+    }
     if (!window.confirm('Clear local history? This will remove locally stored entries.')) return;
     try {
       localStorage.removeItem('setu.history');
@@ -47,6 +60,7 @@ export function HistoryList({ history, setHistory, onSelect, setHistoryMap }) {
     // Keep server entries (source === 'server')
     const remaining = history.filter(h => h.source === 'server');
     setHistory(remaining);
+    setNotice('Local history cleared');
   }
 
   return (
@@ -58,13 +72,18 @@ export function HistoryList({ history, setHistory, onSelect, setHistoryMap }) {
           variant="outline"
           size="xs"
           onClick={clearLocalHistory}
-          disabled={history.length === 0 || !history.some(h => h.source === 'local')}
+          disabled={loading}
           aria-label="Clear local history"
           className="h-6 px-2 text-[11px]"
         >
           Clear
         </Button>
       </div>
+      {notice && (
+        <div aria-live="polite" aria-atomic="true">
+          <Alert title={notice} />
+        </div>
+      )}
       {/* 14.3: Local cache hit ratio from merged history */}
       {history.length > 0 && (
         (() => {
