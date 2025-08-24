@@ -234,6 +234,29 @@ function ShareActions({ bundleResp, lang, voice }) {
 				onClick={copyShare}
 				className="px-2 py-1 border rounded bg-muted/40 hover:bg-muted text-[11px]"
 			>Share Podcast (copy JSON)</button>
+					{shareData.summary && (
+						<button
+							type="button"
+							onClick={async () => {
+								try {
+									await navigator.clipboard.writeText(shareData.summary);
+									const btns = document.querySelectorAll('#btn-copy-summary');
+									btns.forEach(b => { const o = b.textContent; b.textContent = 'Copied!'; setTimeout(()=> { b.textContent = o; }, 1400); });
+								} catch {}
+							}}
+							id="btn-copy-summary"
+							className="px-2 py-1 border rounded bg-muted/40 hover:bg-muted text-[11px]"
+						>Copy Summary</button>
+					)}
+				{/* Step 12.1: WhatsApp share (summary + audio link) */}
+				{shareData.audio.url && (
+					<a
+						href={`https://wa.me/?text=${encodeURIComponent((shareData.summary ? shareData.summary.slice(0,600) + '\n\n' : '') + (shareData.audio.url))}`}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="px-2 py-1 border rounded bg-green-600/80 hover:bg-green-600 text-white text-[11px]"
+					>WhatsApp</a>
+				)}
 			{shareData.audio.url && (
 				<a
 					href={shareData.audio.url}
@@ -242,6 +265,12 @@ function ShareActions({ bundleResp, lang, voice }) {
 					className="underline"
 				>Audio Link</a>
 			)}
+					{/* Step 12.4: Share JSON via URL fragment */}
+					<a
+						href={`#share=${encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(shareData)))) )}`}
+						className="px-2 py-1 border rounded bg-muted/40 hover:bg-muted text-[11px]"
+						title="Embed share payload in URL fragment"
+					>Link</a>
 		</div>
 	);
 }

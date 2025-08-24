@@ -5,6 +5,7 @@ import { MultiLangForm } from './components/batch/MultiLangForm';
 import { BundleForm } from './components/batch/BundleForm';
 import { HistoryList } from './components/history/HistoryList';
 import { useSingleProcessState } from './hooks/useSingleProcessState';
+import { useEffect, useState } from 'react';
 
 // App with base layout shell (Step 1.2) – static placeholders only.
 export default function App() {
@@ -59,6 +60,27 @@ export default function App() {
       });
     }
   }
+  // Step 12.5: Deep link parsing (#share=...) – switch to bundle mode
+  useEffect(() => {
+    function parseFragment() {
+      const hash = window.location.hash || '';
+      const m = hash.match(/#share=([^&]+)/);
+      if (m && m[1]) {
+        try {
+          const decoded = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1])))));
+          if (decoded && decoded.type === 'bundlePodcast') {
+            setMode('bundle');
+            // (Optional) could set some prefill state via context or localStorage
+            try { localStorage.setItem('setu.lastShare', JSON.stringify(decoded)); } catch {}
+          }
+        } catch {}
+      }
+    }
+    parseFragment();
+    window.addEventListener('hashchange', parseFragment);
+    return () => window.removeEventListener('hashchange', parseFragment);
+  }, []);
+
   return (
     <ThemeProvider>
       <Layout>
