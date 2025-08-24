@@ -29,6 +29,25 @@ export default function App() {
     state.setTotalMs(0); state.setRetries({ portia: 0, translation: 0, tts: 0 });
     state.setHeaders({}); state.setTranslationChars(0); state.setSummaryChars(0);
     state.setError(null);
+    // If we have a cached result id, pull audio directly (step 8.5)
+    if (entry.resultId) {
+      state.setStatus('loading');
+      (async () => {
+        try {
+          const { blob, objectUrl } = await import('./lib/apiClient').then(m => m.apiClient.fetchResultAudio(entry.resultId));
+          if (objectUrl) state.setAudioSrc(objectUrl);
+          if (blob) state.setAudioBlob(blob);
+          state.setResultId(entry.resultId);
+          if (entry.runId) state.setRunId(entry.runId);
+          state.setCacheHit(entry.cacheHit || false);
+          if (typeof entry.durationMs === 'number') state.setTotalMs(entry.durationMs);
+          state.setStatus('done');
+        } catch (e) {
+          state.setError(e.message || 'Audio load failed');
+          state.setStatus('error');
+        }
+      })();
+    }
     // Focus URL input for quick resubmission
     if (typeof requestAnimationFrame === 'function') {
       requestAnimationFrame(() => {

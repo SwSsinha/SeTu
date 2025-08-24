@@ -99,3 +99,14 @@ apiClient.fetchHistory = async function fetchHistory({ limit = 25, debug = false
 	return Array.isArray(json.entries) ? json.entries : [];
 };
 
+// Fetch existing audio by result id (no reprocessing)
+apiClient.fetchResultAudio = async function fetchResultAudio(id) {
+	if (!id) throw new Error('Missing result id');
+	const res = await fetch(`${base}/result/${id}/audio`);
+	if (!res.ok) {
+		throw new Error(`Audio not found (${res.status})`);
+	}
+	const blob = await res.blob();
+	return { blob, objectUrl: URL.createObjectURL(blob) };
+};
+
