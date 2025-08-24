@@ -22,6 +22,8 @@ export default function SingleProcessForm({ externalState }) {
   const abortRef = useRef(null);
   // Keep last submission payload for retry (13.3)
   const lastRequestRef = useRef(null);
+  // Step 14.1: simple in-memory signature cache to avoid redundant POST
+  const signatureCacheRef = useRef(new Map()); // key -> { timestamp, resultId, runId }
   const urlTrimmed = url.trim();
 
   const presetLangs = ['hi','en','es'];
@@ -63,6 +65,17 @@ export default function SingleProcessForm({ externalState }) {
     if (inFlightKey && inFlightKey === key) {
       return; // duplicate in-flight
     }
+    // 14.1: If we already have a recent successful result for this signature, skip network
+    const existing = signatureCacheRef.current.get(key);
+    if (existing && existing.resultId) {
+      setStatus('done');
+      setResultId(existing.resultId);
+      setRunId(existing.runId);
+      setCacheHit(existing.cacheHit || false);
+      setSummary(existing.summary || '');
+      setAudioSrc(existing.audioUrl || null);
+      return;
+    }
     setInFlightKey(key);
     lastRequestRef.current = { url: urlTrimmed, effectiveLang, voice };
     // Abort any prior
@@ -90,6 +103,10 @@ export default function SingleProcessForm({ externalState }) {
   if (typeof tChars === 'number') setTranslationChars(tChars);
   if (typeof sChars === 'number') setSummaryChars(sChars);
       setStatus('done');
+      // 14.1 store signature cache
+      try {
+        signatureCacheRef.current.set(key, { ts: Date.now(), resultId: rid, runId: rrun, cacheHit: cHit, summary: sum, audioUrl: objectUrl });
+      } catch {}
       // Fetch result metadata (Step 9.1)
       if (rid) {
         apiClient.fetchResultMeta(rid).then(meta => {

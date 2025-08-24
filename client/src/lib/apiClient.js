@@ -163,3 +163,10 @@ apiClient.postProcessBundle = async function postProcessBundle({ urls, lang, voi
 	return await res.json();
 };
 
+// 14.4 metrics-lite fetch
+apiClient.fetchMetricsLite = async function fetchMetricsLite() {
+	const res = await fetch(`${base}/metrics-lite`);
+	if (!res.ok) throw new Error(`Failed metrics (${res.status})`);
+	return await res.json();
+};
+

@@ -65,6 +65,16 @@ export function HistoryList({ history, setHistory, onSelect, setHistoryMap }) {
           Clear
         </Button>
       </div>
+      {/* 14.3: Local cache hit ratio from merged history */}
+      {history.length > 0 && (
+        (() => {
+          const withCacheFlag = history.filter(h => typeof h.cacheHit === 'boolean');
+          if (withCacheFlag.length === 0) return null;
+          const hits = withCacheFlag.filter(h => h.cacheHit).length;
+          const ratio = (hits / withCacheFlag.length) * 100;
+          return <p className="text-[11px] text-muted-foreground">Cache hit ratio: <span className="font-mono">{hits}</span>/<span className="font-mono">{withCacheFlag.length}</span> ({ratio.toFixed(1)}%)</p>;
+        })()
+      )}
       {loading && <p className="text-xs text-muted-foreground">Loading…</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
       {!loading && !error && history.length === 0 && (

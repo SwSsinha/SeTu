@@ -4,6 +4,7 @@ import SingleProcessForm from './components/process/SingleProcessForm';
 import { MultiLangForm } from './components/batch/MultiLangForm';
 import { BundleForm } from './components/batch/BundleForm';
 import { HistoryList } from './components/history/HistoryList';
+import { MetricsLitePanel } from './components/metrics/MetricsLitePanel';
 import { useSingleProcessState } from './hooks/useSingleProcessState';
 import { useEffect, useState } from 'react';
 
@@ -123,6 +124,7 @@ export default function App() {
           </div>
           <div className="space-y-6">
             <HistoryList history={state.history} setHistory={state.setHistory} setHistoryMap={state.setHistoryMap} onSelect={handleHistorySelect} />
+            <MetricsLitePanel />
           </div>
         </div>
       </Layout>
