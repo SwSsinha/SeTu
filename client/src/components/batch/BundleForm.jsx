@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { apiClient } from '../../lib/apiClient';
@@ -55,6 +55,11 @@ export function BundleForm({ onSubmit }) {
 				await onSubmit?.({ urls: limited, response: resp });
 		} finally { setSubmitting(false); }
 	}
+
+		// Cleanup object URL when replaced/unmounted (Step 11.6 enhancement)
+		useEffect(() => {
+			return () => { if (bundleAudioUrl) URL.revokeObjectURL(bundleAudioUrl); };
+		}, [bundleAudioUrl]);
 
 	return (
 		<form className="space-y-4" onSubmit={handleSubmit} noValidate>
@@ -115,6 +120,44 @@ export function BundleForm({ onSubmit }) {
 																		>download</button>
 																	)}
 																</div>
+															</div>
+														)}
+
+														{/* Step 11.6: Bundle metadata panel */}
+														{bundleResp && (
+															<div className="border rounded-md p-3 bg-muted/20 space-y-2 text-[11px]" aria-label="Bundle metadata">
+																<p className="text-xs font-medium">Bundle Metadata</p>
+																{(() => {
+																	const b = bundleResp.bundle || {};
+																	const failed = Array.isArray(b.failed) ? b.failed : [];
+																	const failedCount = Array.isArray(b.failed) ? b.failed.length : (typeof b.failed === 'number' ? b.failed : 0);
+																	return (
+																		<div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
+																			<div>provider: <span className="font-mono">{bundleResp.ttsProvider || '—'}</span></div>
+																			<div>count: <span className="font-mono">{b.count ?? '—'}</span></div>
+																			<div>failed: <span className={failedCount ? 'text-destructive font-mono' : 'font-mono'}>{failedCount}</span></div>
+																			<div>orig chars: <span className="font-mono">{b.originalChars ?? '—'}</span></div>
+																			<div>translated: <span className="font-mono">{b.translatedChars ?? '—'}</span></div>
+																			<div>cache: <span className="font-mono">{bundleResp.cacheHit ? 'yes' : 'no'}</span></div>
+																			<div>partial: <span className="font-mono">{bundleResp.partial ? 'yes' : 'no'}</span></div>
+																			<div>scrape partial: <span className="font-mono">{b.partialScrape ? 'yes' : 'no'}</span></div>
+																			<div>truncated: <span className="font-mono">{b.truncated ? 'yes' : 'no'}</span></div>
+																			<div>retries(portia): <span className="font-mono">{bundleResp.retries?.portia ?? 0}</span></div>
+																			<div>retries(trans): <span className="font-mono">{bundleResp.retries?.translation ?? 0}</span></div>
+																			<div>retries(tts): <span className="font-mono">{bundleResp.retries?.tts ?? 0}</span></div>
+																		</div>
+																	);
+																})()}
+																{bundleResp.bundle && Array.isArray(bundleResp.bundle.failed) && bundleResp.bundle.failed.length > 0 && (
+																	<div className="pt-1">
+																		<p className="font-medium mb-0.5">Failed URLs</p>
+																		<ul className="list-disc list-inside space-y-0.5">
+																			{bundleResp.bundle.failed.map(f => (
+																				<li key={f.url} className="break-all">{f.url} <span className="text-muted-foreground">({f.error})</span></li>
+																			))}
+																		</ul>
+																	</div>
+																)}
 															</div>
 														)}
 									<div>
