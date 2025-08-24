@@ -38,7 +38,11 @@ export function MetricsLitePanel() {
         </div>
       </div>
       {error && <p className="text-[11px] text-destructive">{error}</p>}
-      {!error && !data && <p className="text-[11px] text-muted-foreground">Loading…</p>}
+      {!error && !data && (
+        <div className="grid grid-cols-2 gap-2" aria-hidden="true">
+          {Array.from({ length: 8 }).map((_,i)=>(<div key={i} className="h-4 rounded bg-muted/40 animate-pulse" />))}
+        </div>
+      )}
       {data && (
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
           <div>runs: <span className="font-mono">{data.totalRuns}</span></div>

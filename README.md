@@ -6,12 +6,12 @@ One-line pitch: An AI-powered agent that makes the English-language internet acc
 Many parents aren’t comfortable with English or technology. SeTu bridges that gap so we can share articles with them in their language as an audio file—focusing on connection, not productivity.
 
 ## What
-- Input: A URL to an English article + target language (e.g., Hindi).
-- Output: An MP3 of the translated article, read aloud in the selected language.
+- Input: A URL (or multiple URLs in bundle mode) + target language (e.g., Hindi).
+- Output: An MP3 of the translated content with summary + share options.
 
 ## Architecture
-- Frontend: React (Vite) — simple form to submit URL + language.
-- Backend: Node.js/Express orchestrator.
+- Frontend: React (Vite) with Tailwind & accessible components (single, multi-lang, bundle modes, sharing panel, metrics).
+- Backend: Node.js/Express orchestrator with caching & metrics-lite.
 - Pipeline:
   1. Portia Labs firecrawl_scrape → extract article content
   2. MyMemory API → translate EN → target language (e.g., en|hi)
@@ -31,6 +31,17 @@ Many parents aren’t comfortable with English or technology. SeTu bridges that 
 ## Repo Structure
 - client/ — React app (Vite)
 - server/ — Express backend orchestrating the pipeline
+
+## Features (Post-MVP Additions)
+- Timeline endpoint with phase metrics & retries
+- Partial translation & TTS fallback handling
+- History (local + server merged) with cache hit ratio
+- Bundle (podcast) mode: multi-URL aggregate, summary, audio merge placeholder
+- Share actions: WhatsApp, copy summary, encoded URL fragment deep link
+- Metrics-lite panel (auto-refresh) & request signature skip cache
+- Error classification, retry, cancel (AbortController)
+- Offline banner + error boundary
+- Loading skeletons for history & metrics
 
 ## Setup
 Prerequisites:
@@ -62,6 +73,19 @@ In two terminals:
 
 ## MVP Goal
 End-to-end: submit one article URL → receive an MP3 in Hindi.
+
+## Versioning
+Current dev version: 0.1.0 (semantic version bump from initial 0.0.0). Major features incomplete for 1.0; pre-1.0 minor bumps indicate feature additions.
+
+## Endpoints (Frontend Consumption)
+- POST /api/process (direct MP3 stream)
+- POST /api/process/timeline (phases JSON + base64 audio)
+- POST /api/process-bundle (bundle summary + audio)
+- POST /api/process-multi (multi-language batch)
+- GET /api/result/:id (result meta) & /api/result/:id/audio (audio stream)
+- GET /api/voices (available voices)
+- GET /api/history (recent runs)
+- GET /api/metrics-lite (metrics snapshot)
 
 ## Notes
 - Free tiers have rate limits (MyMemory) and TTS may incur costs (ElevenLabs).

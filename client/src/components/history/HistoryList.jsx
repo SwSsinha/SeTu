@@ -75,7 +75,13 @@ export function HistoryList({ history, setHistory, onSelect, setHistoryMap }) {
           return <p className="text-[11px] text-muted-foreground">Cache hit ratio: <span className="font-mono">{hits}</span>/<span className="font-mono">{withCacheFlag.length}</span> ({ratio.toFixed(1)}%)</p>;
         })()
       )}
-      {loading && <p className="text-xs text-muted-foreground">Loading…</p>}
+      {loading && (
+        <div className="space-y-2" aria-hidden="true">
+          {Array.from({ length: 4 }).map((_,i) => (
+            <div key={i} className="h-12 animate-pulse rounded-md bg-muted/40" />
+          ))}
+        </div>
+      )}
       {error && <p className="text-xs text-destructive">{error}</p>}
       {!loading && !error && history.length === 0 && (
         <p className="text-xs text-muted-foreground">No recent runs.</p>
