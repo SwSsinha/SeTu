@@ -475,6 +475,39 @@ export default function SingleProcessForm({ externalState }) {
             >
               Copy Link
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const debug = {
+                  runId,
+                  resultId,
+                  url,
+                  lang,
+                  voice,
+                  partial,
+                  cacheHit,
+                  ttsProvider,
+                  totalMs,
+                  retries,
+                  translationChars,
+                  summaryChars,
+                  phases,
+                  headers,
+                  resultMeta,
+                  summary,
+                };
+                const text = JSON.stringify(debug, null, 2);
+                try { await navigator.clipboard.writeText(text); } catch {
+                  const tmp = document.createElement('textarea');
+                  tmp.value = text; document.body.appendChild(tmp); tmp.select(); document.execCommand('copy'); tmp.remove();
+                }
+              }}
+              aria-label="Copy debug JSON"
+            >
+              Copy Debug JSON
+            </Button>
             <Button type="button" variant="secondary" onClick={reset} size="sm">Translate Another</Button>
           </div>
         </div>
