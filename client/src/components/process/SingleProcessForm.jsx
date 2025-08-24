@@ -35,6 +35,17 @@ export default function SingleProcessForm({ externalState }) {
   const showUrlError = urlTrimmed.length > 0 && !urlValid;
   const showLangError = activeSelectValue === 'custom' && customLang.length > 0 && !customLangValid;
 
+  // Sync custom language field if parent updates lang externally (history repopulation)
+  useEffect(() => {
+    if (!presetLangs.includes(lang)) {
+      setCustomLang(lang);
+    } else if (presetLangs.includes(lang) && customLang) {
+      // Clear stale custom value when switching back to preset
+      setCustomLang('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (disabled) return;

@@ -8,6 +8,35 @@ import { useSingleProcessState } from './hooks/useSingleProcessState';
 export default function App() {
   // Provide a top-level instance of the hook so history list can access combined state
   const state = useSingleProcessState();
+  // History selection -> repopulate form fields (Module 8 step 8.4)
+  function handleHistorySelect(entry) {
+    if (!entry) return;
+    const { url, lang, voice } = entry;
+    if (url) state.setUrl(url);
+    if (lang) state.setLang(lang);
+    if (voice) {
+      // Ensure voice exists in list so the select shows it
+      if (state.voices && !state.voices.includes(voice)) {
+        state.setVoices(prev => (prev && prev.includes(voice)) ? prev : [...(prev||[]), voice]);
+      }
+      state.setVoice(voice);
+    }
+    // Clear prior result/output specific state but keep inputs & preferences
+    state.setStatus('idle');
+    state.setAudioSrc(null); state.setAudioBlob(null);
+    state.setPhases([]); state.setSummary(''); state.setResultId(null); state.setRunId(null);
+    state.setPartial(false); state.setCacheHit(false); state.setTtsProvider(null);
+    state.setTotalMs(0); state.setRetries({ portia: 0, translation: 0, tts: 0 });
+    state.setHeaders({}); state.setTranslationChars(0); state.setSummaryChars(0);
+    state.setError(null);
+    // Focus URL input for quick resubmission
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        const el = document.getElementById('url');
+        if (el) el.focus();
+      });
+    }
+  }
   return (
     <ThemeProvider>
       <Layout>
@@ -16,7 +45,7 @@ export default function App() {
             <SingleProcessForm externalState={state} />
           </div>
           <div className="space-y-6">
-            <HistoryList history={state.history} setHistory={state.setHistory} onSelect={() => {}} />
+            <HistoryList history={state.history} setHistory={state.setHistory} onSelect={handleHistorySelect} />
           </div>
         </div>
       </Layout>
